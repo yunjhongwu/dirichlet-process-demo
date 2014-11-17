@@ -7,6 +7,7 @@
 
 import java.awt.Color;
 import java.awt.Paint;
+import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,17 +39,17 @@ import org.jfree.ui.RefineryUtilities;
 public class DPSimulator {
 	final static Color[] colors = { Color.red, Color.yellow, Color.blue,
 			Color.green, Color.white, Color.magenta, Color.orange, Color.pink,
-			Color.cyan, Color.darkGray, Color.lightGray, Color.gray };
+			Color.cyan, Color.lightGray };
 
 	public static class Point2D implements Comparable<Point2D> {
 		int cluster;
 		double x;
 		double y;
 
-		public Point2D(int s, double t, double u) {
-			cluster = s;
-			x = t;
-			y = u;
+		public Point2D(int cluster, double x, double y) {
+			this.cluster = cluster;
+			this.x = x;
+			this.y = y;
 		}
 
 		public int compareTo(Point2D that) {
@@ -354,19 +355,25 @@ public class DPSimulator {
 	}
 
 	private static void updateColors(XYPlot plot, int[] labels) {
-
 		plot.setRenderer(new XYLineAndShapeRenderer(false, true) {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			public Paint getItemPaint(int row, int col) {
-				return colors[labels[col] % 12];
+				Color baseColor = colors[labels[col] % 10];
+				switch (labels[col] / 10 % 2) {
+				case 1:
+					return baseColor.darker();
+				default:
+					return baseColor;
+				}
+			}
+
+			@Override
+			public Shape getSeriesShape(int series) {
+				return new Ellipse2D.Float(0f, 0f, 1f, 1f);
 			}
 		});
-
-		XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot
-				.getRenderer();
-		renderer.setSeriesShape(0, new Ellipse2D.Float(0f, 0f, 1f, 1f), false);
 	}
 
 	public static ScatterPlot initPlots(ScatterPlot truePlot,
@@ -424,7 +431,7 @@ public class DPSimulator {
 			centroidx[i] = crp.mux.get(i);
 			centroidy[i] = crp.mux.get(i);
 		}
-		maxNumCluster = crp.mux.size();
+		maxNumCluster = n; // crp.mux.size();
 
 		// Simulation ///////////////////////////////////////////////////////
 
@@ -441,7 +448,7 @@ public class DPSimulator {
 			gibbs.next(i);
 			if (visual > 0 && i % visual == 0) {
 				updateColors(currentPlot.plot, gibbs.labels);
-				Thread.sleep(20);
+				// Thread.sleep(Math.max(0, 500 - i * 10));
 			}
 		}
 		System.out.println((System.nanoTime() - startTime) / 1000000.0 / iters
