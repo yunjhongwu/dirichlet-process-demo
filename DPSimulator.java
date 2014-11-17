@@ -70,7 +70,7 @@ public class DPSimulator {
 
 		double alpha, theta, beta, xi;
 		int n = 0;
-		
+
 		RandomDataGenerator sampler = new RandomDataGenerator();
 		ArrayList<Integer> customers = new ArrayList<Integer>();
 		ArrayList<Double> mux = new ArrayList<Double>();
@@ -123,7 +123,7 @@ public class DPSimulator {
 		double alpha, theta, beta, xi, xsigma2;
 		int[] labels;
 
-		// size, m1x, m1y, m2x, m2y, mux, muy, s2x, s2y
+		// size, mux, muy, s2x, s2y
 		HashMap<Integer, double[]> clusters = new HashMap<Integer, double[]>();
 		Stack<Integer> emptyClusters = new Stack<Integer>();
 		final ArrayList<Point2D> data;
@@ -177,7 +177,7 @@ public class DPSimulator {
 			// xi/ size) * sigma2 ));
 		}
 
-		public double logNormalDensity(int i, int j) {
+		public double logNormalLikelihood(int i, int j) {
 			return -Math.log(clusters.get(j)[3]) / 2
 					- Math.pow(data.get(i).x - clusters.get(j)[1], 2)
 					/ (2 * clusters.get(j)[3]) - Math.log(clusters.get(j)[4])
@@ -187,11 +187,10 @@ public class DPSimulator {
 
 		public double MHthreshold(int i, int j, int k) {
 			double t = Math.log(clusters.get(j)[0] - 1)
-					+ logNormalDensity(i, j);
-			// t -= (k == -1) ? -50000 : Math.log(clusters.get(k)[0] - 1);
+					+ logNormalLikelihood(i, j);
 			t -= Math.log((k == -1) ? alpha / clusters.size()
 					: clusters.get(k)[0] - 1);
-			t -= logNormalDensity(i, k);
+			t -= logNormalLikelihood(i, k);
 			return t;
 		}
 
@@ -405,7 +404,7 @@ public class DPSimulator {
 			centroidy[i] = crp.mux.get(i);
 		}
 		// //////////////////////////////////////////////////////////////////
-		maxNumCluster = 3; //crp.mux.size();
+		maxNumCluster = n; // crp.mux.size();
 
 		GibbsSampler gibbs = new GibbsSampler(alpha, theta, beta, xi, data, p,
 				centroidx, centroidy, maxNumCluster, report);
