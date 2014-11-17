@@ -68,7 +68,7 @@ public class DPSimulator {
 		// \mu_c \sim N(0, \xi\sigma^2)
 		// \sigma^2 \sim Gamma(\theta, \beta)
 
-		double alpha, theta, beta, xi;
+		final double alpha, theta, eta, xi;
 		int n = 0;
 
 		RandomDataGenerator sampler = new RandomDataGenerator();
@@ -78,11 +78,11 @@ public class DPSimulator {
 		ArrayList<Double> varx = new ArrayList<Double>();
 		ArrayList<Double> vary = new ArrayList<Double>();
 
-		public CRP(double a, double t, double b, double x) {
-			alpha = a;
-			theta = t;
-			beta = 1 / b;
-			xi = x;
+		public CRP(double alpha, double theta, double beta, double xi) {
+			this.alpha = alpha;
+			this.theta = theta;
+			this.eta = 1 / beta;
+			this.xi = xi;
 
 		}
 
@@ -101,8 +101,8 @@ public class DPSimulator {
 				customers.set(cluster, customers.get(cluster) + 1);
 			} else {
 				customers.add(1);
-				double s1 = sampler.nextGamma(theta, beta);
-				double s2 = sampler.nextGamma(theta, beta);
+				double s1 = sampler.nextGamma(theta, eta);
+				double s2 = sampler.nextGamma(theta, eta);
 				varx.add(s1);
 				vary.add(s2);
 				mux.add(sampler.nextGaussian(0, Math.sqrt(xi * s1)));
@@ -118,41 +118,41 @@ public class DPSimulator {
 
 	public static class GibbsSampler {
 
-		int n;
-		int Kmax = 10000;
-		double alpha, theta, beta, xi, xsigma2;
+		final int n;
+		final double alpha, theta, beta, xi;
+		final int maxNumCluster;
+		final int eval;
+		final ArrayList<Point2D> data;
 		int[] labels;
 
 		// size, mux, muy, s2x, s2y
 		HashMap<Integer, double[]> clusters = new HashMap<Integer, double[]>();
 		Stack<Integer> emptyClusters = new Stack<Integer>();
-		final ArrayList<Point2D> data;
 		RandomDataGenerator sampler = new RandomDataGenerator();
 		double[] p;
 		double[] mux;
 		double[] muy;
-		int eval;
-		int maxNumCluster;
 
-		public GibbsSampler(double a, double t, double b, double x,
-				ArrayList<Point2D> d, double[] p, double[] mux, double[] muy,
-				int maxNumCluster, int eval) {
-			data = d;
-			n = data.size();
-			labels = new int[n];
-			alpha = a;
-			theta = t;
-			beta = b;
-			xi = x;
+		public GibbsSampler(double alpha, double theta, double beta, double xi,
+				ArrayList<Point2D> data, double[] p, double[] mux,
+				double[] muy, int maxNumCluster, int eval) {
+			this.data = data;
+			this.n = data.size();
+			this.labels = new int[n];
+			this.alpha = alpha;
+			this.theta = theta;
+			this.beta = beta;
+			this.xi = xi;
 			this.p = p;
 			this.mux = mux;
 			this.muy = muy;
 			this.eval = eval;
 			this.maxNumCluster = maxNumCluster;
+
 			for (int i = n - 1; i > 0; i--)
 				emptyClusters.push(i);
-			double xsigma2 = (xi + 1) * theta / beta;
 
+			double xsigma2 = (xi + 1) * theta / beta;
 			clusters.put(-1, new double[5]);
 			clusters.get(-1)[3] = xsigma2;
 			clusters.get(-1)[4] = xsigma2;
@@ -367,23 +367,45 @@ public class DPSimulator {
 		XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot
 				.getRenderer();
 		renderer.setSeriesShape(0, new Ellipse2D.Float(0f, 0f, 1f, 1f), false);
+	}
 
+	public static ScatterPlot initPlots(ScatterPlot truePlot,
+			ScatterPlot currentPlot, ArrayList<Point2D> data, final int[] labels) {
+		truePlot = new ScatterPlot(data, labels, colors, "Data");
+		truePlot.pack();
+		RefineryUtilities.centerFrameOnScreen(truePlot);
+		truePlot.setVisible(true);
+		truePlot.setSize(685, 650);
+		truePlot.setLocation(0, 30);
+		// truePlot.setExtendedState(truePlot.getExtendedState()
+		// | Frame.MAXIMIZED_BOTH);
+
+		currentPlot = new ScatterPlot(data, new int[labels.length], colors,
+				"DP Model");
+		currentPlot.pack();
+		RefineryUtilities.centerFrameOnScreen(currentPlot);
+		currentPlot.setVisible(true);
+		currentPlot.setSize(685, 650);
+		currentPlot.setLocation(685, 30);
+		// currentPlot.setExtendedState(currentPlot.getExtendedState()
+		// | Frame.MAXIMIZED_BOTH);
+		return currentPlot;
 	}
 
 	public static void main(String[] args) throws InterruptedException {
-		int n = 1000;
-		int iters = 1000000;
-		double alpha = 1;
-		double theta = 200;
-		double beta = 50;
-		double xi = 30;
+		final int n = 10000;
+		final int iters = 1000000;
+		final double alpha = 1;
+		final double theta = 80;
+		final double beta = 20;
+		final double xi = 20;
 
-		int maxNumCluster = n;
-		int visual = 1;
-		int eval = 1000000;
+		final int maxNumCluster;
+		final int visual = 1;
+		final int eval = 1000000;
 
-		// / Generating data ////////////////////////////////////////////////
-		ArrayList<Point2D> data = new ArrayList<Point2D>();
+		// Generating data ////////////////////////////////////////////////
+		final ArrayList<Point2D> data = new ArrayList<Point2D>();
 		int[] labels = new int[n];
 		CRP crp = new CRP(alpha, theta, beta, xi);
 		for (int i = 0; i < n; i++)
@@ -402,41 +424,25 @@ public class DPSimulator {
 			centroidx[i] = crp.mux.get(i);
 			centroidy[i] = crp.mux.get(i);
 		}
-		// //////////////////////////////////////////////////////////////////
-		maxNumCluster = n; // crp.mux.size();
+		maxNumCluster = crp.mux.size();
+
+		// Simulation ///////////////////////////////////////////////////////
 
 		GibbsSampler gibbs = new GibbsSampler(alpha, theta, beta, xi, data, p,
 				centroidx, centroidy, maxNumCluster, eval);
 		ScatterPlot truePlot = null;
 		ScatterPlot currentPlot = null;
-		if (visual > 0) {
-			truePlot = new ScatterPlot(data, labels, colors, "Data");
-			truePlot.pack();
-			RefineryUtilities.centerFrameOnScreen(truePlot);
-			truePlot.setVisible(true);
-			truePlot.setSize(685, 650);
-			truePlot.setLocation(0, 30);
-			// truePlot.setExtendedState(truePlot.getExtendedState()
-			// | Frame.MAXIMIZED_BOTH);
-
-			currentPlot = new ScatterPlot(data, gibbs.labels, colors,
-					"DP Model");
-			currentPlot.pack();
-			RefineryUtilities.centerFrameOnScreen(currentPlot);
-			currentPlot.setVisible(true);
-			currentPlot.setSize(685, 650);
-			currentPlot.setLocation(685, 30);
-			// currentPlot.setExtendedState(currentPlot.getExtendedState()
-			// | Frame.MAXIMIZED_BOTH);
-		}
+		if (visual > 0)
+			currentPlot = initPlots(truePlot, currentPlot, data, labels);
 		long startTime = System.nanoTime();
 		for (int i = 0; i < iters; i++) {
 			System.out.println("Iteration " + i + "; "
 					+ (gibbs.clusters.size() - 1) + " cluster(s)");
 			gibbs.next(i);
-			if (visual > 0 && i % visual == 0)
+			if (visual > 0 && i % visual == 0) {
 				updateColors(currentPlot.plot, gibbs.labels);
-			Thread.sleep(20);
+				Thread.sleep(20);
+			}
 		}
 		System.out.println((System.nanoTime() - startTime) / 1000000.0 / iters
 				+ " milliseconds per iteration");
