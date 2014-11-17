@@ -366,26 +366,25 @@ public class DPSimulator {
 
 		XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot
 				.getRenderer();
-		renderer.setSeriesLinesVisible(0, false);
-		renderer.setSeriesShape(0,
-				new Ellipse2D.Float(-1.0f, -1.0f, 1.0f, 1.0f), false);
+		renderer.setSeriesShape(0, new Ellipse2D.Float(0f, 0f, 1f, 1f), false);
 
 	}
 
 	public static void main(String[] args) throws InterruptedException {
 		int n = 1000;
 		int iters = 1000000;
-		double alpha = 2;
+		double alpha = 1;
 		double theta = 200;
 		double beta = 50;
 		double xi = 30;
-		int[] labels = new int[n];
-		int report = 2;
+
 		int maxNumCluster = n;
-		ArrayList<Point2D> data = new ArrayList<Point2D>();
-		boolean visual = true;
+		int visual = 1;
+		int eval = 1000000;
 
 		// / Generating data ////////////////////////////////////////////////
+		ArrayList<Point2D> data = new ArrayList<Point2D>();
+		int[] labels = new int[n];
 		CRP crp = new CRP(alpha, theta, beta, xi);
 		for (int i = 0; i < n; i++)
 			data.add(crp.next());
@@ -407,10 +406,10 @@ public class DPSimulator {
 		maxNumCluster = n; // crp.mux.size();
 
 		GibbsSampler gibbs = new GibbsSampler(alpha, theta, beta, xi, data, p,
-				centroidx, centroidy, maxNumCluster, report);
+				centroidx, centroidy, maxNumCluster, eval);
 		ScatterPlot truePlot = null;
 		ScatterPlot currentPlot = null;
-		if (visual) {
+		if (visual > 0) {
 			truePlot = new ScatterPlot(data, labels, colors, "Data");
 			truePlot.pack();
 			RefineryUtilities.centerFrameOnScreen(truePlot);
@@ -435,7 +434,7 @@ public class DPSimulator {
 			System.out.println("Iteration " + i + "; "
 					+ (gibbs.clusters.size() - 1) + " cluster(s)");
 			gibbs.next(i);
-			if (visual)
+			if (visual > 0 && i % visual == 0)
 				updateColors(currentPlot.plot, gibbs.labels);
 			Thread.sleep(20);
 		}
