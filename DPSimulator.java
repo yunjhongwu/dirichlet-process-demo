@@ -70,6 +70,7 @@ public class DPSimulator {
 
 		double alpha, theta, beta, xi;
 		int n = 0;
+		
 		RandomDataGenerator sampler = new RandomDataGenerator();
 		ArrayList<Integer> customers = new ArrayList<Integer>();
 		ArrayList<Double> mux = new ArrayList<Double>();
@@ -131,10 +132,11 @@ public class DPSimulator {
 		double[] mux;
 		double[] muy;
 		int eval;
+		int maxNumCluster;
 
 		public GibbsSampler(double a, double t, double b, double x,
 				ArrayList<Point2D> d, double[] p, double[] mux, double[] muy,
-				int eval) {
+				int maxNumCluster, int eval) {
 			data = d;
 			n = data.size();
 			labels = new int[n];
@@ -146,6 +148,7 @@ public class DPSimulator {
 			this.mux = mux;
 			this.muy = muy;
 			this.eval = eval;
+			this.maxNumCluster = maxNumCluster;
 			for (int i = n - 1; i > 0; i--)
 				emptyClusters.push(i);
 			double xsigma2 = (xi + 1) * theta / beta;
@@ -231,7 +234,7 @@ public class DPSimulator {
 
 			for (int i = 0; i < this.n; i++) {
 				int r = sampler.nextInt(0, lb.size() - 1);
-				if (lb.get(r) != -1 || lb.size() < n)
+				if (lb.get(r) != -1 || lb.size() <= maxNumCluster)
 					if (lb.get(r) != labels[i]
 							&& sampler.nextExponential(1) > MHthreshold(i,
 									labels[i], lb.get(r))) {
@@ -371,13 +374,15 @@ public class DPSimulator {
 	}
 
 	public static void main(String[] args) throws InterruptedException {
-		int n = 20000;
+		int n = 1000;
 		int iters = 1000000;
 		double alpha = 2;
 		double theta = 200;
 		double beta = 50;
 		double xi = 30;
 		int[] labels = new int[n];
+		int report = 2;
+		int maxNumCluster = n;
 		ArrayList<Point2D> data = new ArrayList<Point2D>();
 		boolean visual = true;
 
@@ -400,9 +405,10 @@ public class DPSimulator {
 			centroidy[i] = crp.mux.get(i);
 		}
 		// //////////////////////////////////////////////////////////////////
+		maxNumCluster = 3; //crp.mux.size();
 
 		GibbsSampler gibbs = new GibbsSampler(alpha, theta, beta, xi, data, p,
-				centroidx, centroidy, 10);
+				centroidx, centroidy, maxNumCluster, report);
 		ScatterPlot truePlot = null;
 		ScatterPlot currentPlot = null;
 		if (visual) {
@@ -430,7 +436,8 @@ public class DPSimulator {
 			System.out.println("Iteration " + i + "; "
 					+ (gibbs.clusters.size() - 1) + " cluster(s)");
 			gibbs.next(i);
-			updateColors(currentPlot.plot, gibbs.labels);
+			if (visual)
+				updateColors(currentPlot.plot, gibbs.labels);
 			Thread.sleep(20);
 		}
 		System.out.println((System.nanoTime() - startTime) / 1000000.0 / iters
