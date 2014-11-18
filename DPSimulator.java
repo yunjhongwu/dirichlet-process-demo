@@ -157,7 +157,7 @@ public class DPSimulator {
 					emptyClusters.push(i);
 			}
 			Collections.shuffle(ord);
-			ord.forEach(i -> {
+			ord.stream().forEach(i -> {
 				clusters.get(i % numClusters)[0]++;
 				labels[i] = i % numClusters;
 			});
@@ -263,7 +263,7 @@ public class DPSimulator {
 		public void next() {
 			modifiedClusters = new HashSet<Integer>();
 			Collections.shuffle(ord);
-			ord.forEach(i -> nextIter(i));
+			ord.stream().forEach(i -> nextIter(i));
 
 			if (!emptyClusters.isEmpty()
 					&& clusters.containsKey(emptyClusters.peek()))
@@ -402,13 +402,13 @@ public class DPSimulator {
 
 	@SuppressWarnings("unused")
 	public static void main(String[] args) throws InterruptedException {
-		final int n = 50000;
+		final int n = 20000;
 		final int maxIters = 1000000;
 		final double alpha = 1;
 		final double theta = 100;
 		final double beta = 20;
 		final double xi = 20;
-        final int initClusters = 500;
+        final int initClusters = n;
 		final int maxNumClusters;
 		final int visual = 1;
 		final int eval = 0;
