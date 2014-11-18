@@ -121,8 +121,8 @@ public class DPSimulator {
 	public static class GibbsSampler {
 
 		final int n;
-		final double alpha, theta, beta, xi;
 		final int maxNumCluster;
+		final double alpha, theta, beta, xi;
 		final ArrayList<Point2D> data;
 		int[] labels;
 		int count = 0;
@@ -142,12 +142,11 @@ public class DPSimulator {
 			this.beta = beta;
 			this.xi = xi;
 			this.maxNumCluster = maxNumCluster;
-
 			for (int i = n - 1; i > 0; i--)
 				emptyClusters.push(i);
-
 			double xsigma2 = (xi + 1) * theta / beta;
 			clusters.put(-1, new double[5]);
+			clusters.get(-1)[0] = -1;
 			clusters.get(-1)[3] = xsigma2;
 			clusters.get(-1)[4] = xsigma2;
 			clusters.put(0, new double[5]);
@@ -155,31 +154,32 @@ public class DPSimulator {
 			HashSet<Integer> s = new HashSet<Integer>();
 			s.add(0);
 			updateMoments(s);
-
 		}
 
-		public double posteriorGammaSampler(double mu, double m2, double size) {
+		public double posteriorVariance(double mu, double m2, double size) {
 			return (2 * theta + size)
 					/ (2 * beta + (m2 - Math.pow(mu, 2) / (size + xi)));
 			// return sampler.nextGamma(theta + size / 2.0,
 			// 2 / (2 * beta + (m2 - Math.pow(mu, 2) / (size + xi))));
 		}
 
-		public double posteriorNormalSampler(double mu, double size) {
+		public double posteriorMean(double mu, double size) {
 			return mu / (size + xi);
 			// return sampler.nextGaussian(mu / (size + xi), Math.sqrt((1 +
 			// xi/ size) * sigma2 ));
 		}
 
 		public double logNormalLikelihood(int i, int j) {
-			return -Math.log(clusters.get(j)[3]) / 2
-					- Math.pow(data.get(i).x - clusters.get(j)[1], 2)
-					/ (2 * clusters.get(j)[3]) - Math.log(clusters.get(j)[4])
-					/ 2 - Math.pow(data.get(i).y - clusters.get(j)[2], 2)
-					/ (2 * clusters.get(j)[4]);
+			return -0.5
+					* (Math.log(clusters.get(j)[3])
+							+ Math.log(clusters.get(j)[4])
+							+ Math.pow(data.get(i).x - clusters.get(j)[1], 2)
+							/ clusters.get(j)[3] + Math.pow(data.get(i).y
+							- clusters.get(j)[2], 2)
+							/ clusters.get(j)[4]);
 		}
 
-		public double MHthreshold(int i, int j, int k) {
+		public double MHThreshold(int i, int j, int k) {
 			double t = Math.log(clusters.get(j)[0] - 1)
 					+ logNormalLikelihood(i, j);
 			t -= Math.log((k == -1) ? alpha / clusters.size()
@@ -188,8 +188,17 @@ public class DPSimulator {
 			return t;
 		}
 
-		public void updateMoments(HashSet<Integer> s) {
-			for (Integer c : s) {
+		public int MHKernel() {
+			int s = 0;
+			int r = sampler.nextInt(0, clusters.size() - 1);
+			for (Integer c : clusters.keySet())
+				if (r == s++)
+					return c;
+			return -1;
+		}
+
+		public void updateMoments(HashSet<Integer> modifiedClusters) {
+			for (Integer c : modifiedClusters) {
 				clusters.get(c)[1] = 0;
 				clusters.get(c)[2] = 0;
 				clusters.get(c)[3] = 0;
@@ -197,65 +206,65 @@ public class DPSimulator {
 			}
 
 			for (int i = 0; i < n; i++)
-				if (s.contains(labels[i])) {
+				if (modifiedClusters.contains(labels[i])) {
 					clusters.get(labels[i])[1] += data.get(i).x;
 					clusters.get(labels[i])[2] += data.get(i).y;
 					clusters.get(labels[i])[3] += Math.pow(data.get(i).x, 2);
 					clusters.get(labels[i])[4] += Math.pow(data.get(i).y, 2);
 				}
 
-			for (Integer c : s)
-				if (c > -1) {
-					clusters.get(c)[3] = posteriorGammaSampler(
-							clusters.get(c)[1], clusters.get(c)[3],
-							clusters.get(c)[0]);
-					clusters.get(c)[4] = posteriorGammaSampler(
-							clusters.get(c)[2], clusters.get(c)[4],
-							clusters.get(c)[0]);
-					clusters.get(c)[1] = posteriorNormalSampler(
-							clusters.get(c)[1], clusters.get(c)[0]);
-					clusters.get(c)[2] = posteriorNormalSampler(
-							clusters.get(c)[2], clusters.get(c)[0]);
-				}
+			for (Integer c : modifiedClusters) {
+				clusters.get(c)[3] = posteriorVariance(clusters.get(c)[1],
+						clusters.get(c)[3], clusters.get(c)[0]);
+				clusters.get(c)[4] = posteriorVariance(clusters.get(c)[2],
+						clusters.get(c)[4], clusters.get(c)[0]);
+				clusters.get(c)[1] = posteriorMean(clusters.get(c)[1],
+						clusters.get(c)[0]);
+				clusters.get(c)[2] = posteriorMean(clusters.get(c)[2],
+						clusters.get(c)[0]);
+			}
 
 		}
 
-		public void next(int iter) {
+		public void next() {
 			count = 0;
-			ArrayList<Integer> lb = new ArrayList<Integer>(clusters.keySet());
-			HashSet<Integer> s = new HashSet<Integer>();
+			HashSet<Integer> modifiedClusters = new HashSet<Integer>();
+			boolean newCluster = false;
 
-			for (int i = 0; i < this.n; i++) {
-				int r = sampler.nextInt(0, lb.size() - 1);
-				if (lb.get(r) != -1 || lb.size() <= maxNumCluster)
-					if (lb.get(r) != labels[i]
-							&& sampler.nextExponential(1) > MHthreshold(i,
-									labels[i], lb.get(r))) {
-						int c = (lb.get(r) == -1) ? emptyClusters.peek() : lb
-								.get(r);
+			for (int i = 0; i < n; i++) {
+				int nextCluster = MHKernel();
+				if (nextCluster != -1 || clusters.size() <= maxNumCluster)
+					if (nextCluster != labels[i]
+							&& sampler.nextExponential(1) > MHThreshold(i,
+									labels[i], nextCluster)) {
+						nextCluster = (nextCluster == -1) ? emptyClusters
+								.peek() : nextCluster;
 
-						if (!clusters.containsKey(c))
-							clusters.put(c, new double[5]);
+						if (!clusters.containsKey(nextCluster)) {
+							clusters.put(nextCluster, new double[5]);
+							newCluster = true;
+						}
+
 						clusters.get(labels[i])[0]--;
-						clusters.get(c)[0]++;
-						s.add(labels[i]);
-						s.add(c);
-						labels[i] = c;
+						clusters.get(nextCluster)[0]++;
+						modifiedClusters.add(labels[i]);
+						modifiedClusters.add(nextCluster);
+						labels[i] = nextCluster;
 						count++;
 					}
 			}
-			if (clusters.size() > lb.size())
+
+			if (newCluster)
 				emptyClusters.pop();
-			for (Integer c : lb)
-				if (clusters.get(c)[0] == 0 && c > -1) {
+
+			for (Integer c : new HashSet<Integer>(modifiedClusters))
+				if (clusters.get(c)[0] == 0) {
 					clusters.remove(c);
 					emptyClusters.push(c);
-					s.remove(c);
+					modifiedClusters.remove(c);
 				}
-			updateMoments(s);
-
+			updateMoments(modifiedClusters);
 		}
-
 	}
 
 	public static double getResidual(int n,
@@ -264,8 +273,7 @@ public class DPSimulator {
 		double[] res = new double[(clusters.size() - 1) * mux.length];
 		double[] q = new double[clusters.size() - 1];
 		int i = 0;
-		for (Integer c : clusters.keySet()) {
-
+		for (Integer c : clusters.keySet())
 			if (c > -1) {
 				for (int j = 0; j < mux.length; j++)
 					res[i * mux.length + j] = Math.pow(mux[j]
@@ -274,7 +282,6 @@ public class DPSimulator {
 				q[i++] = clusters.get(c)[0] / (double) n;
 			}
 
-		}
 		return getOptResidual(res, q, p);
 	}
 
@@ -328,7 +335,6 @@ public class DPSimulator {
 			chart.setBorderVisible(false);
 			panel.setBackground(Color.black);
 			setContentPane(panel);
-
 		}
 
 		private XYSeriesCollection getData(final ArrayList<Point2D> data) {
@@ -338,9 +344,7 @@ public class DPSimulator {
 				series.add(data.get(i).x, data.get(i).y);
 			xyseries.addSeries(series);
 			return xyseries;
-
 		}
-
 	}
 
 	private static void updateColors(XYPlot plot, int[] labels) {
@@ -373,8 +377,6 @@ public class DPSimulator {
 		truePlot.setSize(685, 650);
 		truePlot.setLocation(0, 30);
 		truePlot.setVisible(true);
-		// truePlot.setExtendedState(truePlot.getExtendedState()
-		// | Frame.MAXIMIZED_BOTH);
 
 		currentPlot = new ScatterPlot(data, new int[labels.length], colors,
 				"DP Model");
@@ -383,15 +385,13 @@ public class DPSimulator {
 		currentPlot.setSize(685, 650);
 		currentPlot.setLocation(685, 30);
 		currentPlot.setVisible(true);
-		// currentPlot.setExtendedState(currentPlot.getExtendedState()
-		// | Frame.MAXIMIZED_BOTH);
 		return currentPlot;
 	}
 
 	@SuppressWarnings("unused")
 	public static void main(String[] args) throws InterruptedException {
 		final int n = 5000;
-		final int iters = 1000000;
+		final int maxIters = 1000000;
 		final double alpha = 1;
 		final double theta = 80;
 		final double beta = 20;
@@ -412,14 +412,14 @@ public class DPSimulator {
 		Collections.sort(data);
 		for (int i = 0; i < n; i++)
 			labels[i] = data.get(i).cluster;
-		maxNumCluster = crp.mux.size();
+		maxNumCluster = n; // crp.mux.size();
 
-		double[] p = new double[crp.size.size()];
+		double[] proportion = new double[crp.size.size()];
 		double[] centroidx = new double[crp.mux.size()];
 		double[] centroidy = new double[crp.mux.size()];
 
-		for (int c = 0; c < p.length; c++) {
-			p[c] = crp.size.get(c) / (double) n;
+		for (int c = 0; c < proportion.length; c++) {
+			proportion[c] = crp.size.get(c) / (double) n;
 			centroidx[c] = crp.mux.get(c);
 			centroidy[c] = crp.mux.get(c);
 		}
@@ -432,28 +432,30 @@ public class DPSimulator {
 		// Simulation ///////////////////////////////////////////////////////
 		GibbsSampler gibbs = new GibbsSampler(alpha, theta, beta, xi,
 				maxNumCluster, data);
+
 		ScatterPlot truePlot = null;
 		ScatterPlot currentPlot = null;
 		if (visual > 0)
 			currentPlot = initPlots(truePlot, currentPlot, data, labels);
+
 		long startTime = System.nanoTime();
-		for (int i = 0; i < iters; i++) {
+		for (int i = 0; i < maxIters; i++) {
 			System.out.println("Iteration " + i + "; "
-					+ (gibbs.clusters.size() - 1) + " cluster(s)");
-			gibbs.next(i);
+					+ (gibbs.clusters.size() - 1) + " cluster(s); "
+					+ (System.nanoTime() - startTime) / 1000000.0 / (i + 1)
+					+ " milliseconds per iteration");
+			gibbs.next();
 			if (visual > 0 && i % visual == 0) {
 				updateColors(currentPlot.plot, gibbs.labels);
-				// Thread.sleep(Math.max(0, 500 - i * 10));
+				// Thread.sleep(20);
 			}
 			if (eval > 0 && i % eval == 0)
 				System.out.println("Acc. rate = "
 						+ gibbs.count
 						/ (double) n
 						+ "; residual = "
-						+ getResidual(n, gibbs.clusters, p, centroidx,
+						+ getResidual(n, gibbs.clusters, proportion, centroidx,
 								centroidy));
 		}
-		System.out.println((System.nanoTime() - startTime) / 1000000.0 / iters
-				+ " milliseconds per iteration");
 	}
 }
