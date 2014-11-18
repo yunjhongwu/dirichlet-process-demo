@@ -409,7 +409,7 @@ public class DPSimulator {
 		final double theta = 100;
 		final double beta = 20;
 		final double xi = 20;
-		final int initClusters = 10;
+		final int initClusters = n;
 		final int maxNumClusters;
 		final int visual = 1;
 		final int eval = 0;
