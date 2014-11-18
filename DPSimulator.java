@@ -13,8 +13,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.Stack;
 
 import org.apache.commons.math3.optim.MaxIter;
@@ -121,9 +119,7 @@ public class DPSimulator {
 		final ArrayList<Point2D> data;
 		int[] labels;
 
-		// size, mux, muy, s2x, s2y
 		HashMap<Integer, double[]> clusters = new HashMap<Integer, double[]>();
-		HashSet<Integer> modifiedClusters = new HashSet<Integer>();
 		Stack<Integer> emptyClusters = new Stack<Integer>();
 		ArrayList<Integer> ord = new ArrayList<Integer>();
 		RandomDataGenerator sampler = new RandomDataGenerator();
@@ -147,7 +143,7 @@ public class DPSimulator {
 				if (i < numClusters)
 					clusters.put(i, new double[5]);
 				else
-					emptyClusters.push(i);
+					emptyClusters.push(n - 1 - i);
 			}
 			Collections.shuffle(ord);
 			ord.stream().forEach(i -> {
@@ -156,7 +152,7 @@ public class DPSimulator {
 			});
 			clusters.put(-1, new double[5]);
 			clusters.get(-1)[0] = -1;
-			updateMoments(clusters.keySet());
+			updateAllMoments();
 		}
 
 		public double posteriorVariance(double mu, double m2, double size) {
@@ -173,13 +169,22 @@ public class DPSimulator {
 		}
 
 		public double logNormalLikelihood(int i, int j) {
+			double s2x = posteriorVariance(clusters.get(j)[1],
+					clusters.get(j)[3], clusters.get(j)[0]);
+			double s2y = posteriorVariance(clusters.get(j)[2],
+					clusters.get(j)[4], clusters.get(j)[0]);
 			return -0.5
-					* (Math.log(clusters.get(j)[3])
-							+ Math.log(clusters.get(j)[4])
-							+ Math.pow(data.get(i).x - clusters.get(j)[1], 2)
-							/ clusters.get(j)[3] + Math.pow(data.get(i).y
-							- clusters.get(j)[2], 2)
-							/ clusters.get(j)[4]);
+					* (Math.log(s2x)
+							+ Math.log(s2y)
+							+ Math.pow(
+									data.get(i).x
+											- posteriorMean(clusters.get(j)[1],
+													clusters.get(j)[0]), 2)
+							/ s2x + Math.pow(
+							data.get(i).y
+									- posteriorMean(clusters.get(j)[2],
+											clusters.get(j)[0]), 2)
+							/ s2y);
 		}
 
 		public double MHThreshold(int i, int j, int k) {
@@ -202,33 +207,33 @@ public class DPSimulator {
 			return -1;
 		}
 
-		public void updateMoments(Set<Integer> modifiedClusters) {
-			for (Integer c : modifiedClusters) {
+		public void updateMoments(int i, int j, int k) {
+			clusters.get(j)[1] += data.get(i).x;
+			clusters.get(j)[2] += data.get(i).y;
+			clusters.get(j)[3] += Math.pow(data.get(i).x, 2);
+			clusters.get(j)[4] += Math.pow(data.get(i).y, 2);
+			if (clusters.containsKey(k)) {
+				clusters.get(k)[1] -= data.get(i).x;
+				clusters.get(k)[2] -= data.get(i).y;
+				clusters.get(k)[3] -= Math.pow(data.get(i).x, 2);
+				clusters.get(k)[4] -= Math.pow(data.get(i).y, 2);
+			}
+		}
+
+		public void updateAllMoments() {
+			for (Integer c : clusters.keySet()) {
 				clusters.get(c)[1] = 0;
 				clusters.get(c)[2] = 0;
 				clusters.get(c)[3] = 0;
 				clusters.get(c)[4] = 0;
 			}
 
-			for (int i = 0; i < n; i++)
-				if (modifiedClusters.contains(labels[i])) {
-					clusters.get(labels[i])[1] += data.get(i).x;
-					clusters.get(labels[i])[2] += data.get(i).y;
-					clusters.get(labels[i])[3] += Math.pow(data.get(i).x, 2);
-					clusters.get(labels[i])[4] += Math.pow(data.get(i).y, 2);
-				}
-
-			for (Integer c : modifiedClusters) {
-				clusters.get(c)[3] = posteriorVariance(clusters.get(c)[1],
-						clusters.get(c)[3], clusters.get(c)[0]);
-				clusters.get(c)[4] = posteriorVariance(clusters.get(c)[2],
-						clusters.get(c)[4], clusters.get(c)[0]);
-				clusters.get(c)[1] = posteriorMean(clusters.get(c)[1],
-						clusters.get(c)[0]);
-				clusters.get(c)[2] = posteriorMean(clusters.get(c)[2],
-						clusters.get(c)[0]);
+			for (int i = 0; i < n; i++) {
+				clusters.get(labels[i])[1] += data.get(i).x;
+				clusters.get(labels[i])[2] += data.get(i).y;
+				clusters.get(labels[i])[3] += Math.pow(data.get(i).x, 2);
+				clusters.get(labels[i])[4] += Math.pow(data.get(i).y, 2);
 			}
-
 		}
 
 		public void nextIter(int i) {
@@ -243,73 +248,78 @@ public class DPSimulator {
 					if (!clusters.containsKey(nextCluster))
 						clusters.put(nextCluster, new double[5]);
 
-					clusters.get(labels[i])[0]--;
 					clusters.get(nextCluster)[0]++;
-					modifiedClusters.add(labels[i]);
-					modifiedClusters.add(nextCluster);
+					if (clusters.get(labels[i])[0] > 1)
+						clusters.get(labels[i])[0]--;
+					else {
+						clusters.remove(labels[i]);
+						emptyClusters.push(labels[i]);
+					}
+					updateMoments(i, nextCluster, labels[i]);
 					labels[i] = nextCluster;
 				}
 		}
 
-		public void next() {
-			modifiedClusters = new HashSet<Integer>();
+		public void next(int k) {
 			Collections.shuffle(ord);
-			ord.stream().forEach(i -> nextIter(i));
+			ord.forEach(i -> nextIter(i));
 
 			if (!emptyClusters.isEmpty()
 					&& clusters.containsKey(emptyClusters.peek()))
 				emptyClusters.pop();
 
-			for (Integer c : new HashSet<Integer>(modifiedClusters))
-				if (clusters.get(c)[0] == 0) {
-					clusters.remove(c);
-					emptyClusters.push(c);
-					modifiedClusters.remove(c);
-				}
-			updateMoments(modifiedClusters);
+			if (k % 1000 == 0)
+				updateAllMoments();
 		}
-	}
 
-	public static double getResidual(int n,
-			HashMap<Integer, double[]> clusters, final double[] p,
-			final double[] mux, final double[] muy) {
-		double[] res = new double[(clusters.size() - 1) * mux.length];
-		double[] q = new double[clusters.size() - 1];
-		int i = 0;
-		for (Integer c : clusters.keySet())
-			if (c > -1) {
-				for (int j = 0; j < mux.length; j++)
-					res[i * mux.length + j] = Math.pow(mux[j]
-							- clusters.get(c)[1], 2)
-							+ Math.pow(muy[j] - clusters.get(c)[2], 2);
-				q[i++] = clusters.get(c)[0] / (double) n;
+		public double getResidual(int n, final double[] p, final double[] mux,
+				final double[] muy) {
+			double[] res = new double[(clusters.size() - 1) * mux.length];
+			double[] q = new double[clusters.size() - 1];
+			int i = 0;
+			for (Integer c : clusters.keySet())
+				if (c > -1) {
+					for (int j = 0; j < mux.length; j++)
+						res[i * mux.length + j] = Math.pow(
+								mux[j]
+										- posteriorMean(clusters.get(c)[1],
+												clusters.get(c)[0]), 2)
+								+ Math.pow(
+										muy[j]
+												- posteriorMean(
+														clusters.get(c)[2],
+														clusters.get(c)[0]), 2);
+					q[i++] = clusters.get(c)[0] / (double) n;
+				}
+
+			return getOptResidual(res, q, p);
+		}
+
+		public static double getOptResidual(final double[] res,
+				final double[] cols, final double[] rows) {
+			LinearObjectiveFunction f = new LinearObjectiveFunction(res, 0);
+			Collection<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
+			for (int i = 0; i < cols.length; i++) {
+				double[] b = new double[cols.length * rows.length];
+				for (int j = i * rows.length; j < (i + 1) * rows.length; j++)
+					b[j]++;
+				constraints.add(new LinearConstraint(b, Relationship.EQ,
+						cols[i]));
 			}
 
-		return getOptResidual(res, q, p);
-	}
+			for (int i = 0; i < rows.length; i++) {
+				double[] b = new double[cols.length * rows.length];
+				for (int j = i; j < b.length; j += rows.length)
+					b[j]++;
+				constraints.add(new LinearConstraint(b, Relationship.EQ,
+						rows[i]));
+			}
+			SimplexSolver solver = new SimplexSolver();
 
-	public static double getOptResidual(final double[] res,
-			final double[] cols, final double[] rows) {
-		LinearObjectiveFunction f = new LinearObjectiveFunction(res, 0);
-		Collection<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
-		for (int i = 0; i < cols.length; i++) {
-			double[] b = new double[cols.length * rows.length];
-			for (int j = i * rows.length; j < (i + 1) * rows.length; j++)
-				b[j]++;
-			constraints.add(new LinearConstraint(b, Relationship.EQ, cols[i]));
+			return solver.optimize(new MaxIter(10000), f,
+					new LinearConstraintSet(constraints), GoalType.MINIMIZE,
+					new NonNegativeConstraint(true)).getSecond();
 		}
-
-		for (int i = 0; i < rows.length; i++) {
-			double[] b = new double[cols.length * rows.length];
-			for (int j = i; j < b.length; j += rows.length)
-				b[j]++;
-			constraints.add(new LinearConstraint(b, Relationship.EQ, rows[i]));
-		}
-		SimplexSolver solver = new SimplexSolver();
-
-		return solver.optimize(new MaxIter(10000), f,
-				new LinearConstraintSet(constraints), GoalType.MINIMIZE,
-				new NonNegativeConstraint(true)).getSecond();
 	}
 
 	public static class ScatterPlot extends ApplicationFrame {
@@ -393,13 +403,13 @@ public class DPSimulator {
 
 	@SuppressWarnings("unused")
 	public static void main(String[] args) throws InterruptedException {
-		final int n = 20000;
+		final int n = 100000;
 		final int maxIters = 1000000;
 		final double alpha = 1;
 		final double theta = 100;
 		final double beta = 20;
 		final double xi = 20;
-		final int initClusters = 1;
+		final int initClusters = 10;
 		final int maxNumClusters;
 		final int visual = 1;
 		final int eval = 0;
@@ -415,7 +425,7 @@ public class DPSimulator {
 		Collections.sort(data);
 		for (int i = 0; i < n; i++)
 			labels[i] = data.get(i).cluster;
-		maxNumClusters = n; // crp.mux.size();
+		maxNumClusters = n; // crp.moments.size();
 
 		double[] proportion = new double[crp.size.size()];
 		double[] centroidx = new double[crp.moments.size()];
@@ -443,17 +453,19 @@ public class DPSimulator {
 					gibbs.labels);
 
 		long startTime = System.nanoTime();
-		for (int i = 0; i < maxIters; i++) {
-			gibbs.next();
+		for (int k = 0; k < maxIters; k++) {
+			gibbs.next(k);
 
-			System.out.format("Iteration %d; %f milliseconds per iteration; %d cluster(s). ", i,
-					(System.nanoTime() - startTime) / 1000000.0 / (i + 1),
-					(gibbs.clusters.size() - 1));
-			System.out.println((eval > 0 && i % eval == 0) ? "residual = "
-					+ getResidual(n, gibbs.clusters, proportion, centroidx,
-							centroidy) : "");
+			System.out
+					.format("Iteration %d; %f milliseconds per iteration; %d cluster(s). ",
+							k, (System.nanoTime() - startTime) / 1000000.0
+									/ (k + 1), (gibbs.clusters.size() - 1));
+			System.out.println((eval > 0 && k % eval == 0) ? "residual = "
+					+ gibbs.getResidual(n, proportion, centroidx, centroidy)
+					: "");
+			// Thread.sleep(500);
 
-			if (visual > 0 && i % visual == 0)
+			if (visual > 0 && k % visual == 0)
 				updateColors(currentPlot.plot, gibbs.labels);
 
 		}
