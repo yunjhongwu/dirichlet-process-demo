@@ -89,7 +89,7 @@ public class DPSimulator {
 				numsPlot.updateSeries(k, gibbs.clusters.size() - 1);
 			}
 			if (k == saveChart)
-				ImageIO.write(numsPlot.chart.createBufferedImage(300, 200),
+				ImageIO.write(numsPlot.chart.createBufferedImage(650, 400),
 						"png", new File("num_of_clusters.png"));
 
 		}

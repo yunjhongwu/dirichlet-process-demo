@@ -52,7 +52,7 @@ public class TrackNumClusters extends ApplicationFrame {
 		plot.setBackgroundPaint(Color.black);
 		chart.setBackgroundPaint(Color.black);
 		chart.setBorderVisible(false);
-		panel.setPreferredSize(new java.awt.Dimension(700, 400));
+		panel.setPreferredSize(new java.awt.Dimension(650, 400));
 		panel.setBackground(Color.black);
 		series.add(0, initNum);
 		trueValue.add(0, trueNum);
