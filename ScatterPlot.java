@@ -20,6 +20,7 @@ import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
+import org.jfree.ui.RefineryUtilities;
 
 public class ScatterPlot extends ApplicationFrame {
 	private static final long serialVersionUID = 1L;
@@ -38,7 +39,7 @@ public class ScatterPlot extends ApplicationFrame {
 
 		final ChartPanel panel = new ChartPanel(chart);
 		plot = (XYPlot) chart.getPlot();
-		updateColors(plot, labels);
+		updateColors(labels);
 		plot.setDomainCrosshairVisible(false);
 		plot.setRangeCrosshairVisible(false);
 		plot.setDomainGridlinesVisible(false);
@@ -51,6 +52,24 @@ public class ScatterPlot extends ApplicationFrame {
 		setContentPane(panel);
 	}
 
+	protected static ScatterPlot initPlots(ArrayList<Point2D> data,
+			final int[] labels, final int[] glabels) {
+		ScatterPlot truePlot = new ScatterPlot(data, labels, "Data");
+		truePlot.pack();
+		RefineryUtilities.centerFrameOnScreen(truePlot);
+		truePlot.setSize(685, 650);
+		truePlot.setLocation(0, 20);
+		truePlot.setVisible(true);
+
+		ScatterPlot currentPlot = new ScatterPlot(data, glabels, "DP Model");
+		currentPlot.pack();
+		RefineryUtilities.centerFrameOnScreen(currentPlot);
+		currentPlot.setSize(685, 650);
+		currentPlot.setLocation(685, 20);
+		currentPlot.setVisible(true);
+		return currentPlot;
+	}
+
 	private XYSeriesCollection getData(final ArrayList<Point2D> data) {
 		XYSeriesCollection xyseries = new XYSeriesCollection();
 		XYSeries series = new XYSeries("data");
@@ -60,7 +79,7 @@ public class ScatterPlot extends ApplicationFrame {
 		return xyseries;
 	}
 
-	protected static void updateColors(XYPlot plot, int[] labels) {
+	protected void updateColors(int[] labels) {
 		plot.setRenderer(new XYLineAndShapeRenderer(false, true) {
 			private static final long serialVersionUID = 1L;
 

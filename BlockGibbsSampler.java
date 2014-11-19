@@ -10,10 +10,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
-public class VectorGibbsSampler extends GibbsSampler {
+public class BlockGibbsSampler extends GibbsSampler {
 	HashMap<Integer, Integer> amended;
 
-	public VectorGibbsSampler(double alpha, double theta, double beta,
+	public BlockGibbsSampler(double alpha, double theta, double beta,
 			double xi, int initClusters, int maxNumClusters,
 			ArrayList<Point2D> data) {
 		super(alpha, theta, beta, xi, initClusters, maxNumClusters, data);

@@ -5,33 +5,17 @@
  * E-mail: yjwu@umich.edu
  */
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import org.jfree.ui.RefineryUtilities;
+
+import javax.imageio.ImageIO;
 
 public class DPSimulator {
-
-	private static ScatterPlot initPlots(ScatterPlot truePlot,
-			ScatterPlot currentPlot, ArrayList<Point2D> data,
-			final int[] labels, final int[] glabels) {
-		truePlot = new ScatterPlot(data, labels, "Data");
-		truePlot.pack();
-		RefineryUtilities.centerFrameOnScreen(truePlot);
-		truePlot.setSize(685, 650);
-		truePlot.setLocation(0, 20);
-		truePlot.setVisible(true);
-
-		currentPlot = new ScatterPlot(data, glabels, "DP Model");
-		currentPlot.pack();
-		RefineryUtilities.centerFrameOnScreen(currentPlot);
-		currentPlot.setSize(685, 650);
-		currentPlot.setLocation(685, 20);
-		currentPlot.setVisible(true);
-		return currentPlot;
-	}
-
 	@SuppressWarnings("unused")
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException,
+			IOException {
 		final int n = 10000;
 		final int maxIters = Integer.MAX_VALUE;
 		final double alpha = 1;
@@ -43,6 +27,7 @@ public class DPSimulator {
 		final int visual = 1;
 		final int eval = 0;
 		final boolean singleton = true;
+		final int saveChart = 100;
 
 		/* Generating data */
 		System.out.print("Generating data...");
@@ -77,28 +62,36 @@ public class DPSimulator {
 		/* Simulation */
 		GibbsSampler gibbs = (singleton) ? new SingletonGibbsSampler(alpha,
 				theta, beta, xi, initClusters, maxNumClusters, data)
-				: new VectorGibbsSampler(alpha, theta, beta, xi, initClusters,
+				: new BlockGibbsSampler(alpha, theta, beta, xi, initClusters,
 						maxNumClusters, data);
 
-		ScatterPlot truePlot = null;
 		ScatterPlot currentPlot = null;
-		if (visual > 0)
-			currentPlot = initPlots(truePlot, currentPlot, data, labels,
-					gibbs.labels);
+		TrackNumClusters numsPlot = null;
+		if (visual > 0) {
+			currentPlot = ScatterPlot.initPlots(data, labels, gibbs.labels);
+			numsPlot = new TrackNumClusters(proportion.length, initClusters);
+
+		}
 
 		long startTime = System.nanoTime();
-		for (int k = 0; k < maxIters; k++) {
+		for (int k = 1; k < maxIters; k++) {
 			gibbs.next(k);
 			System.out
 					.format("Iteration %d; %f milliseconds per iteration; %d clusters. ",
-							k, (System.nanoTime() - startTime) / 1000000.0
-									/ (k + 1), (gibbs.clusters.size() - 1));
+							k, (System.nanoTime() - startTime) / 1000000.0 / k,
+							gibbs.clusters.size() - 1);
 			System.out.println((eval > 0 && k % eval == 0) ? "residual = "
 					+ gibbs.getResidual(n, proportion, centroidx, centroidy)
 					: "");
 
-			if (visual > 0 && k % visual == 0)
-				ScatterPlot.updateColors(currentPlot.plot, gibbs.labels);
+			if (visual > 0 && k % visual == 0) {
+				currentPlot.updateColors(gibbs.labels);
+				numsPlot.updateSeries(k, gibbs.clusters.size() - 1);
+			}
+			if (k == saveChart)
+				ImageIO.write(numsPlot.chart.createBufferedImage(300, 200),
+						"png", new File("num_of_clusters.png"));
+
 		}
 	}
 }
