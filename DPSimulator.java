@@ -5,54 +5,23 @@
  * E-mail: yjwu@umich.edu
  */
 
-import java.awt.Color;
-import java.awt.Paint;
-import java.awt.Shape;
-import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
 import java.util.Collections;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.ui.RefineryUtilities;
 
 public class DPSimulator {
-	final static Color[] colors = { Color.red, Color.yellow, Color.blue,
-			Color.green, Color.white, Color.magenta, Color.orange, Color.pink,
-			Color.cyan, Color.lightGray };
-
-	protected static void updateColors(XYPlot plot, int[] labels) {
-		plot.setRenderer(new XYLineAndShapeRenderer(false, true) {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public Paint getItemPaint(int row, int col) {
-				Color baseColor = colors[labels[col] % 10];
-				switch (labels[col] / 10 % 2) {
-				case 1:
-					return baseColor.darker();
-				default:
-					return baseColor;
-				}
-			}
-
-			@Override
-			public Shape getSeriesShape(int series) {
-				return new Ellipse2D.Float(0f, 0f, 1f, 1f);
-			}
-		});
-	}
 
 	public static ScatterPlot initPlots(ScatterPlot truePlot,
 			ScatterPlot currentPlot, ArrayList<Point2D> data,
 			final int[] labels, final int[] glabels) {
-		truePlot = new ScatterPlot(data, labels, colors, "Data");
+		truePlot = new ScatterPlot(data, labels, "Data");
 		truePlot.pack();
 		RefineryUtilities.centerFrameOnScreen(truePlot);
 		truePlot.setSize(685, 650);
 		truePlot.setLocation(0, 20);
 		truePlot.setVisible(true);
 
-		currentPlot = new ScatterPlot(data, glabels, colors, "DP Model");
+		currentPlot = new ScatterPlot(data, glabels, "DP Model");
 		currentPlot.pack();
 		RefineryUtilities.centerFrameOnScreen(currentPlot);
 		currentPlot.setSize(685, 650);
@@ -129,7 +98,7 @@ public class DPSimulator {
 					: "");
 
 			if (visual > 0 && k % visual == 0)
-				updateColors(currentPlot.plot, gibbs.labels);
+				ScatterPlot.updateColors(currentPlot.plot, gibbs.labels);
 		}
 	}
 }
