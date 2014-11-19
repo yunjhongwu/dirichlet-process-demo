@@ -11,7 +11,7 @@ import org.jfree.ui.RefineryUtilities;
 
 public class DPSimulator {
 
-	public static ScatterPlot initPlots(ScatterPlot truePlot,
+	private static ScatterPlot initPlots(ScatterPlot truePlot,
 			ScatterPlot currentPlot, ArrayList<Point2D> data,
 			final int[] labels, final int[] glabels) {
 		truePlot = new ScatterPlot(data, labels, "Data");

@@ -8,11 +8,10 @@
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class VectorGibbsSampler extends GibbsSampler {
-	HashMap<Integer, AtomicInteger> modifiedClusters;
+	HashMap<Integer, Integer> amended;
 
 	public VectorGibbsSampler(double alpha, double theta, double beta,
 			double xi, int initClusters, int maxNumClusters,
@@ -32,30 +31,30 @@ public class VectorGibbsSampler extends GibbsSampler {
 				if (!clusters.containsKey(nextCluster))
 					clusters.put(nextCluster, new double[5]);
 
-				if (!modifiedClusters.containsKey(labels[i]))
-					modifiedClusters.put(labels[i], new AtomicInteger(
-							(int) (clusters.get(labels[i])[0] - 1)));
+				if (!amended.containsKey(labels[i]))
+					amended.put(labels[i],
+							(int) (clusters.get(labels[i])[0] - 1));
 				else
-					modifiedClusters.get(labels[i]).decrementAndGet();
-				if (!modifiedClusters.containsKey(nextCluster))
-					modifiedClusters.put(nextCluster, new AtomicInteger(
-							(int) (clusters.get(nextCluster)[0] + 1)));
+					amended.put(labels[i], amended.get(labels[i]) - 1);
+				if (!amended.containsKey(nextCluster))
+					amended.put(nextCluster,
+							(int) (clusters.get(nextCluster)[0] + 1));
 				else
-					modifiedClusters.get(nextCluster).incrementAndGet();
+					amended.put(nextCluster, amended.get(nextCluster) + 1);
 
 				labels[i] = nextCluster;
 			}
 	}
 
 	public void next(int k) {
-		modifiedClusters = new HashMap<Integer, AtomicInteger>();
+		amended = new HashMap<Integer, Integer>();
 
 		Collections.shuffle(ord);
 		ord.forEach(i -> nextIter(i));
 
-		for (Integer c : modifiedClusters.keySet())
-			if (modifiedClusters.get(c).intValue() > 0)
-				clusters.get(c)[0] = modifiedClusters.get(c).doubleValue();
+		for (Integer c : amended.keySet())
+			if (amended.get(c) > 0)
+				clusters.get(c)[0] = amended.get(c);
 			else {
 				clusters.remove(c);
 				emptyClusters.push(c);
@@ -63,9 +62,8 @@ public class VectorGibbsSampler extends GibbsSampler {
 
 		if (clusters.containsKey(emptyClusters.peek()))
 			emptyClusters.pop();
-		updateAllMoments(modifiedClusters.keySet().stream()
-				.filter(i -> modifiedClusters.get(i).intValue() > 0)
-				.collect(Collectors.toSet()));
+		updateAllMoments(amended.keySet().stream()
+				.filter(i -> amended.get(i) > 0).collect(Collectors.toSet()));
 
 	}
 }

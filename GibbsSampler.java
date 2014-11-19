@@ -65,20 +65,20 @@ public abstract class GibbsSampler {
 		updateAllMoments();
 	}
 
-	public double posteriorVariance(double mu, double m2, double size) {
+	private double posteriorVariance(double mu, double m2, double size) {
 		return (2 * theta + size)
 				/ (2 * beta + (m2 - Math.pow(mu, 2) / (size + xi)));
 		// return sampler.nextGamma(theta + size / 2.0,
 		// 2 / (2 * beta + (m2 - Math.pow(mu, 2) / (size + xi))));
 	}
 
-	public double posteriorMean(double mu, double size) {
+	private double posteriorMean(double mu, double size) {
 		return mu / (size + xi);
 		// return sampler.nextGaussian(mu / (size + xi), Math.sqrt((1 +
 		// xi/ size) * sigma2 ));
 	}
 
-	public double logNormalLikelihood(int i, int j) {
+	private double logNormalLikelihood(int i, int j) {
 		double s2x = posteriorVariance(clusters.get(j)[1], clusters.get(j)[3],
 				clusters.get(j)[0]);
 		double s2y = posteriorVariance(clusters.get(j)[2], clusters.get(j)[4],
@@ -96,7 +96,7 @@ public abstract class GibbsSampler {
 						/ s2y);
 	}
 
-	public double MHThreshold(int i, int j, int k) {
+	protected double MHThreshold(int i, int j, int k) {
 		if (clusters.get(j)[0] == 1)
 			return 0;
 		double t = Math.log(clusters.get(j)[0] - 1) + logNormalLikelihood(i, j);
@@ -105,7 +105,7 @@ public abstract class GibbsSampler {
 		return t;
 	}
 
-	public int MHKernel() {
+	protected int MHKernel() {
 		int s = 0;
 		int r = sampler.nextInt(0, clusters.size() - 1);
 		for (Integer c : clusters.keySet())
@@ -114,7 +114,7 @@ public abstract class GibbsSampler {
 		return -1;
 	}
 
-	public void updateMoments(int i, int j, int k) {
+	protected void updateMoments(int i, int j, int k) {
 		clusters.get(j)[1] += data.get(i).x;
 		clusters.get(j)[2] += data.get(i).y;
 		clusters.get(j)[3] += Math.pow(data.get(i).x, 2);
@@ -127,12 +127,12 @@ public abstract class GibbsSampler {
 		}
 	}
 
-	public void updateAllMoments() {
+	protected void updateAllMoments() {
 		updateAllMoments(clusters.keySet());
 	}
 
-	public void updateAllMoments(Set<Integer> modifiedClusters) {
-		for (Integer c : modifiedClusters) {
+	protected void updateAllMoments(Set<Integer> amended) {
+		for (Integer c : amended) {
 			clusters.get(c)[1] = 0;
 			clusters.get(c)[2] = 0;
 			clusters.get(c)[3] = 0;
@@ -169,7 +169,7 @@ public abstract class GibbsSampler {
 		return getOptResidual(res, q, p);
 	}
 
-	public double getOptResidual(final double[] res, final double[] cols,
+	private double getOptResidual(final double[] res, final double[] cols,
 			final double[] rows) {
 		LinearObjectiveFunction f = new LinearObjectiveFunction(res, 0);
 		Collection<LinearConstraint> constraints = new ArrayList<LinearConstraint>();

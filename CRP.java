@@ -34,7 +34,7 @@ public class CRP {
 		sampler.reSeed(i);
 	}
 
-	public Point2D getPosition(int cluster) {
+	private Point2D getPosition(int cluster) {
 		return new Point2D(cluster, (float) sampler.nextGaussian(
 				moments.get(cluster)[0], moments.get(cluster)[2]),
 				(float) sampler.nextGaussian(moments.get(cluster)[1],
