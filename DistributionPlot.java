@@ -8,38 +8,42 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.util.ArrayList;
 
 import javax.swing.JPanel;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.data.category.CategoryDataset;
+import org.jfree.data.general.DatasetUtilities;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 
-public class TrackNumClusters extends ApplicationFrame {
+public class DistributionPlot extends ApplicationFrame {
 	private static final long serialVersionUID = 1L;
-	private XYSeries series;
-	protected final JFreeChart chart;
 
-	public TrackNumClusters(int trueNum, int initNum) {
-		super("Number of Clusters (K = " + trueNum + ")");
-		this.series = new XYSeries("Estimates");
-		final XYSeriesCollection nums = new XYSeriesCollection(series);
-		chart = ChartFactory.createXYLineChart("DP Model", "Iterations",
-				"Number of Clusters", nums, PlotOrientation.VERTICAL, false,
-				false, false);
-		final XYPlot plot = chart.getXYPlot();
+	public DistributionPlot(ArrayList<Integer> freq, int num) {
+		super("Size of Clusters");
+		double[][] freqDouble = new double[1][freq.size()];
+		for (int i = 0; i < freq.size(); i++)
+			freqDouble[0][i] = freq.get(i);
+
+		final CategoryDataset data = DatasetUtilities.createCategoryDataset("",
+				"", freqDouble);
+		final JFreeChart chart = ChartFactory.createBarChart(
+				"Size of Clusters", "Clusters", "Size", data,
+				PlotOrientation.VERTICAL, false, false, false);
+
+		final CategoryPlot plot = chart.getCategoryPlot();
 		final JPanel content = new JPanel(new BorderLayout());
 		final ChartPanel panel = new ChartPanel(chart);
 
 		content.add(panel);
 		setContentPane(content);
-		plot.getRenderer().setSeriesPaint(0, Color.yellow);
+		plot.getRenderer().setSeriesPaint(0, Color.green);
 		plot.setDomainCrosshairVisible(false);
 		plot.setRangeCrosshairVisible(false);
 		plot.setDomainGridlinesVisible(false);
@@ -47,16 +51,11 @@ public class TrackNumClusters extends ApplicationFrame {
 		plot.setBackgroundPaint(Color.black);
 		chart.setBackgroundPaint(Color.black);
 		chart.setBorderVisible(false);
-		panel.setPreferredSize(new Dimension(650, 400));
 		panel.setBackground(Color.black);
-		series.add(0, initNum);
+		panel.setPreferredSize(new Dimension(650, 400));
 		this.pack();
 		RefineryUtilities.centerFrameOnScreen(this);
 		this.setVisible(true);
-	}
-
-	public void updateSeries(int iters, int num) {
-		series.add(iters, num);
 	}
 
 }

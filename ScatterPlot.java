@@ -20,7 +20,6 @@ import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.RefineryUtilities;
 
 public class ScatterPlot extends ApplicationFrame {
 	private static final long serialVersionUID = 1L;
@@ -53,19 +52,19 @@ public class ScatterPlot extends ApplicationFrame {
 	}
 
 	protected static ScatterPlot initPlots(ArrayList<Point2D> data,
-			final int[] labels, final int[] glabels) {
-		ScatterPlot truePlot = new ScatterPlot(data, labels, "Data");
+			final int[] labels, final int[] glabels, boolean singleton) {
+		ScatterPlot truePlot = new ScatterPlot(data, labels, "Data (N = "
+				+ data.size() + ")");
 		truePlot.pack();
-		RefineryUtilities.centerFrameOnScreen(truePlot);
 		truePlot.setSize(685, 650);
-		truePlot.setLocation(0, 20);
+		truePlot.setLocation(0, 0);
 		truePlot.setVisible(true);
 
-		ScatterPlot currentPlot = new ScatterPlot(data, glabels, "DP Model");
+		ScatterPlot currentPlot = new ScatterPlot(data, glabels,
+				"DP Model (Sampler: " + ((singleton) ? "Singleton)" : "Block)"));
 		currentPlot.pack();
-		RefineryUtilities.centerFrameOnScreen(currentPlot);
 		currentPlot.setSize(685, 650);
-		currentPlot.setLocation(685, 20);
+		currentPlot.setLocation(685, 0);
 		currentPlot.setVisible(true);
 		return currentPlot;
 	}

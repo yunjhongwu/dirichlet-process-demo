@@ -27,7 +27,7 @@ public class DPSimulator {
 		final int visual = 1;
 		final int eval = 0;
 		final boolean singleton = true;
-		final int saveChart = 100;
+		final int saveChart = 0;
 
 		/* Generating data */
 		System.out.print("Generating data...");
@@ -53,10 +53,12 @@ public class DPSimulator {
 			centroidx[c] = crp.moments.get(c)[0];
 			centroidy[c] = crp.moments.get(c)[1];
 		}
-
+		ArrayList<Integer> freq = crp.size;
+		Collections.sort(freq, Collections.reverseOrder());
 		System.out.println("done.");
 		System.out.println(n + " data points and " + crp.moments.size()
-				+ " clusters with size " + crp.size.toString() + " generated.");
+				+ " clusters with size " + freq.toString() + " generated.");
+
 		crp = null;
 
 		/* Simulation */
@@ -68,9 +70,10 @@ public class DPSimulator {
 		ScatterPlot currentPlot = null;
 		TrackNumClusters numsPlot = null;
 		if (visual > 0) {
-			currentPlot = ScatterPlot.initPlots(data, labels, gibbs.labels);
+			new DistributionPlot(freq, proportion.length);
+			currentPlot = ScatterPlot.initPlots(data, labels, gibbs.labels,
+					singleton);
 			numsPlot = new TrackNumClusters(proportion.length, initClusters);
-
 		}
 
 		long startTime = System.nanoTime();
