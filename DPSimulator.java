@@ -13,7 +13,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.commons.math3.optim.MaxIter;
 import org.apache.commons.math3.optim.linear.LinearConstraint;
@@ -76,10 +79,16 @@ public class DPSimulator {
 		ArrayList<double[]> moments = new ArrayList<double[]>();
 
 		public CRP(double alpha, double theta, double beta, double xi) {
+			sampler.reSeed();
 			this.alpha = alpha;
 			this.theta = theta;
 			this.eta = 1 / beta;
 			this.xi = xi;
+		}
+
+		public CRP(double alpha, double theta, double beta, double xi, int i) {
+			this(alpha, theta, beta, xi);
+			sampler.reSeed(i);
 		}
 
 		public Point2D getPosition(int cluster) {
@@ -112,7 +121,7 @@ public class DPSimulator {
 		}
 	}
 
-	public static class GibbsSampler {
+	public static abstract class GibbsSampler {
 		final int n;
 		final int maxNumClusters;
 		final double alpha, theta, beta, xi;
@@ -221,7 +230,11 @@ public class DPSimulator {
 		}
 
 		public void updateAllMoments() {
-			for (Integer c : clusters.keySet()) {
+			updateAllMoments(clusters.keySet());
+		}
+
+		public void updateAllMoments(Set<Integer> modifiedClusters) {
+			for (Integer c : modifiedClusters) {
 				clusters.get(c)[1] = 0;
 				clusters.get(c)[2] = 0;
 				clusters.get(c)[3] = 0;
@@ -234,42 +247,6 @@ public class DPSimulator {
 				clusters.get(labels[i])[3] += Math.pow(data.get(i).x, 2);
 				clusters.get(labels[i])[4] += Math.pow(data.get(i).y, 2);
 			}
-		}
-
-		public void nextIter(int i) {
-			int nextCluster = MHKernel();
-			if (nextCluster != -1 || clusters.size() <= maxNumClusters)
-				if (nextCluster != labels[i]
-						&& sampler.nextExponential(1) > MHThreshold(i,
-								labels[i], nextCluster)) {
-					nextCluster = (nextCluster == -1) ? emptyClusters.peek()
-							: nextCluster;
-
-					if (!clusters.containsKey(nextCluster))
-						clusters.put(nextCluster, new double[5]);
-
-					clusters.get(nextCluster)[0]++;
-					if (clusters.get(labels[i])[0] > 1)
-						clusters.get(labels[i])[0]--;
-					else {
-						clusters.remove(labels[i]);
-						emptyClusters.push(labels[i]);
-					}
-					updateMoments(i, nextCluster, labels[i]);
-					labels[i] = nextCluster;
-				}
-		}
-
-		public void next(int k) {
-			Collections.shuffle(ord);
-			ord.forEach(i -> nextIter(i));
-
-			if (!emptyClusters.isEmpty()
-					&& clusters.containsKey(emptyClusters.peek()))
-				emptyClusters.pop();
-
-			if (k % 1000 == 0)
-				updateAllMoments();
 		}
 
 		public double getResidual(int n, final double[] p, final double[] mux,
@@ -295,8 +272,8 @@ public class DPSimulator {
 			return getOptResidual(res, q, p);
 		}
 
-		public static double getOptResidual(final double[] res,
-				final double[] cols, final double[] rows) {
+		public double getOptResidual(final double[] res, final double[] cols,
+				final double[] rows) {
 			LinearObjectiveFunction f = new LinearObjectiveFunction(res, 0);
 			Collection<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
 			for (int i = 0; i < cols.length; i++) {
@@ -319,6 +296,111 @@ public class DPSimulator {
 			return solver.optimize(new MaxIter(10000), f,
 					new LinearConstraintSet(constraints), GoalType.MINIMIZE,
 					new NonNegativeConstraint(true)).getSecond();
+		}
+
+		public abstract void nextIter(int i);
+
+		public abstract void next(int k);
+
+	}
+
+	public static class SingletonGibbsSampler extends GibbsSampler {
+		public SingletonGibbsSampler(double alpha, double theta, double beta,
+				double xi, int initClusters, int maxNumClusters,
+				ArrayList<Point2D> data) {
+			super(alpha, theta, beta, xi, initClusters, maxNumClusters, data);
+		}
+
+		public void nextIter(int i) {
+			int nextCluster = MHKernel();
+			if (nextCluster != -1 || clusters.size() <= maxNumClusters)
+				if (nextCluster != labels[i]
+						&& sampler.nextExponential(1) > MHThreshold(i,
+								labels[i], nextCluster)) {
+					nextCluster = (nextCluster == -1) ? emptyClusters.pop()
+							: nextCluster;
+
+					if (!clusters.containsKey(nextCluster))
+						clusters.put(nextCluster, new double[5]);
+
+					clusters.get(nextCluster)[0]++;
+					if (clusters.get(labels[i])[0] > 1)
+						clusters.get(labels[i])[0]--;
+					else {
+						clusters.remove(labels[i]);
+						emptyClusters.push(labels[i]);
+					}
+					updateMoments(i, nextCluster, labels[i]);
+					labels[i] = nextCluster;
+				}
+		}
+
+		public void next(int k) {
+			Collections.shuffle(ord);
+			ord.forEach(i -> nextIter(i));
+
+			if (k % 1000 == 0)
+				updateAllMoments();
+		}
+
+	}
+
+	public static class VectorGibbsSampler extends GibbsSampler {
+		HashMap<Integer, AtomicInteger> modifiedClusters;
+
+		public VectorGibbsSampler(double alpha, double theta, double beta,
+				double xi, int initClusters, int maxNumClusters,
+				ArrayList<Point2D> data) {
+			super(alpha, theta, beta, xi, initClusters, maxNumClusters, data);
+		}
+
+		public void nextIter(int i) {
+			int nextCluster = MHKernel();
+			if (nextCluster != -1 || clusters.size() <= maxNumClusters)
+				if (nextCluster != labels[i]
+						&& sampler.nextExponential(1) > MHThreshold(i,
+								labels[i], nextCluster)) {
+					nextCluster = (nextCluster == -1) ? emptyClusters.peek()
+							: nextCluster;
+
+					if (!clusters.containsKey(nextCluster))
+						clusters.put(nextCluster, new double[5]);
+
+					if (!modifiedClusters.containsKey(labels[i]))
+						modifiedClusters.put(labels[i], new AtomicInteger(
+								(int) (clusters.get(labels[i])[0] - 1)));
+					else
+						modifiedClusters.get(labels[i]).decrementAndGet();
+					if (!modifiedClusters.containsKey(nextCluster))
+						modifiedClusters.put(nextCluster, new AtomicInteger(
+								(int) (clusters.get(nextCluster)[0] + 1)));
+					else
+						modifiedClusters.get(nextCluster).incrementAndGet();
+
+					labels[i] = nextCluster;
+				}
+		}
+
+		public void next(int k) {
+			modifiedClusters = new HashMap<Integer, AtomicInteger>();
+
+			Collections.shuffle(ord);
+			ord.forEach(i -> nextIter(i));
+
+			for (Integer c : modifiedClusters.keySet())
+				if (modifiedClusters.get(c).intValue() > 0)
+					clusters.get(c)[0] = modifiedClusters.get(c).doubleValue();
+				else {
+					clusters.remove(c);
+					emptyClusters.push(c);
+				}
+
+			if (clusters.containsKey(emptyClusters.peek()))
+				emptyClusters.pop();
+			updateAllMoments(modifiedClusters.keySet().stream()
+					.filter(i -> modifiedClusters.get(i).intValue() > 0)
+					.collect(Collectors.toSet()));
+
 		}
 	}
 
@@ -389,36 +471,37 @@ public class DPSimulator {
 		truePlot.pack();
 		RefineryUtilities.centerFrameOnScreen(truePlot);
 		truePlot.setSize(685, 650);
-		truePlot.setLocation(0, 30);
+		truePlot.setLocation(0, 20);
 		truePlot.setVisible(true);
 
 		currentPlot = new ScatterPlot(data, glabels, colors, "DP Model");
 		currentPlot.pack();
 		RefineryUtilities.centerFrameOnScreen(currentPlot);
 		currentPlot.setSize(685, 650);
-		currentPlot.setLocation(685, 30);
+		currentPlot.setLocation(685, 20);
 		currentPlot.setVisible(true);
 		return currentPlot;
 	}
 
 	@SuppressWarnings("unused")
 	public static void main(String[] args) throws InterruptedException {
-		final int n = 100000;
-		final int maxIters = 1000000;
+		final int n = 10000;
+		final int maxIters = Integer.MAX_VALUE;
 		final double alpha = 1;
 		final double theta = 100;
 		final double beta = 20;
 		final double xi = 20;
-		final int initClusters = n;
+		final int initClusters = 1;
 		final int maxNumClusters;
 		final int visual = 1;
 		final int eval = 0;
+		final boolean singleton = true;
 
 		/* Generating data */
 		System.out.print("Generating data...");
 		final ArrayList<Point2D> data = new ArrayList<Point2D>();
 		int[] labels = new int[n];
-		CRP crp = new CRP(alpha, theta, beta, xi);
+		CRP crp = new CRP(alpha, theta, beta, xi, 0);
 		for (int i = 0; i < n; i++)
 			data.add(crp.next());
 
@@ -443,8 +526,10 @@ public class DPSimulator {
 		crp = null;
 
 		/* Simulation */
-		GibbsSampler gibbs = new GibbsSampler(alpha, theta, beta, xi,
-				initClusters, maxNumClusters, data);
+		GibbsSampler gibbs = (singleton) ? new SingletonGibbsSampler(alpha,
+				theta, beta, xi, initClusters, maxNumClusters, data)
+				: new VectorGibbsSampler(alpha, theta, beta, xi, initClusters,
+						maxNumClusters, data);
 
 		ScatterPlot truePlot = null;
 		ScatterPlot currentPlot = null;
@@ -455,19 +540,16 @@ public class DPSimulator {
 		long startTime = System.nanoTime();
 		for (int k = 0; k < maxIters; k++) {
 			gibbs.next(k);
-
 			System.out
-					.format("Iteration %d; %f milliseconds per iteration; %d cluster(s). ",
+					.format("Iteration %d; %f milliseconds per iteration; %d clusters. ",
 							k, (System.nanoTime() - startTime) / 1000000.0
 									/ (k + 1), (gibbs.clusters.size() - 1));
 			System.out.println((eval > 0 && k % eval == 0) ? "residual = "
 					+ gibbs.getResidual(n, proportion, centroidx, centroidy)
 					: "");
-			// Thread.sleep(500);
 
 			if (visual > 0 && k % visual == 0)
 				updateColors(currentPlot.plot, gibbs.labels);
-
 		}
 	}
 }
