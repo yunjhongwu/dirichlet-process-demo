@@ -20,7 +20,6 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.general.DatasetUtilities;
 import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.RefineryUtilities;
 
 public class DistributionPlot extends ApplicationFrame {
 	private static final long serialVersionUID = 1L;
@@ -52,9 +51,9 @@ public class DistributionPlot extends ApplicationFrame {
 		chart.setBackgroundPaint(Color.black);
 		chart.setBorderVisible(false);
 		panel.setBackground(Color.black);
-		panel.setPreferredSize(new Dimension(650, 400));
+		panel.setPreferredSize(new Dimension(685, 300));
+		this.setLocation(0, 500);
 		this.pack();
-		RefineryUtilities.centerFrameOnScreen(this);
 		this.setVisible(true);
 	}
 

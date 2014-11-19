@@ -6,7 +6,6 @@
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
@@ -49,8 +48,7 @@ public class BlockGibbsSampler extends GibbsSampler {
 	public void next(int k) {
 		amended = new HashMap<Integer, Integer>();
 
-		Collections.shuffle(ord);
-		ord.forEach(i -> nextIter(i));
+	    ord.forEach(i -> nextIter(i));
 
 		for (Integer c : amended.keySet())
 			if (amended.get(c) > 0)

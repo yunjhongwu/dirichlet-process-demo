@@ -14,12 +14,12 @@ import javax.swing.JPanel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.RefineryUtilities;
 
 public class TrackNumClusters extends ApplicationFrame {
 	private static final long serialVersionUID = 1L;
@@ -37,8 +37,11 @@ public class TrackNumClusters extends ApplicationFrame {
 		final JPanel content = new JPanel(new BorderLayout());
 		final ChartPanel panel = new ChartPanel(chart);
 
+
 		content.add(panel);
 		setContentPane(content);
+		plot.getDomainAxis().setStandardTickUnits(
+				NumberAxis.createIntegerTickUnits());
 		plot.getRenderer().setSeriesPaint(0, Color.yellow);
 		plot.setDomainCrosshairVisible(false);
 		plot.setRangeCrosshairVisible(false);
@@ -47,11 +50,11 @@ public class TrackNumClusters extends ApplicationFrame {
 		plot.setBackgroundPaint(Color.black);
 		chart.setBackgroundPaint(Color.black);
 		chart.setBorderVisible(false);
-		panel.setPreferredSize(new Dimension(650, 400));
+		panel.setPreferredSize(new Dimension(685, 300));
 		panel.setBackground(Color.black);
 		series.add(0, initNum);
+		this.setLocation(685, 500);
 		this.pack();
-		RefineryUtilities.centerFrameOnScreen(this);
 		this.setVisible(true);
 	}
 
