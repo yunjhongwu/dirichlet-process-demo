@@ -1,3 +1,10 @@
+/*
+ * Created on Nov 18 2014
+ * JAVA SE 8
+ * Author: Yun-Jhong Wu
+ * E-mail: yjwu@umich.edu
+ */
+
 import java.util.ArrayList;
 
 import org.apache.commons.math3.random.RandomDataGenerator;

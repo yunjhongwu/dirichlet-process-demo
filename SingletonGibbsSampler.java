@@ -1,3 +1,10 @@
+/*
+ * Created on Nov 18, 2014
+ * JAVA SE 8
+ * Auther: Yun-Jhong Wu
+ * E-mail: yjwu@umich.edu 
+ */
+
 import java.util.ArrayList;
 import java.util.Collections;
 

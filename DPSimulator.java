@@ -1,5 +1,5 @@
 /*
- * Created on Mon Nov 12 2014
+ * Created on Nov 12 2014
  * JAVA SE 8
  * Author: Yun-Jhong Wu
  * E-mail: yjwu@umich.edu

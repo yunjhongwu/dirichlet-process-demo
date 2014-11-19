@@ -1,3 +1,10 @@
+/*
+ * Created on Nov 18 2014
+ * JAVA SE 8
+ * Author: Yun-Jhong Wu
+ * E-mail: yjwu@umich.edu
+ */
+
 public class Point2D implements Comparable<Point2D> {
 	final int cluster;
 	final float x;

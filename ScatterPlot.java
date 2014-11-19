@@ -1,3 +1,10 @@
+/*
+ * Created on Nov 18 2014
+ * JAVA SE 8
+ * Author: Yun-Jhong Wu
+ * E-mail: yjwu@umich.edu
+ */
+
 import java.awt.Color;
 import java.awt.Paint;
 import java.awt.Shape;
@@ -18,8 +25,8 @@ public class ScatterPlot extends ApplicationFrame {
 	private static final long serialVersionUID = 1L;
 	public XYPlot plot;
 	final static Color[] colors = { Color.red, Color.yellow, Color.blue,
-		Color.green, Color.white, Color.magenta, Color.orange, Color.pink,
-		Color.cyan, Color.lightGray };
+			Color.green, Color.white, Color.magenta, Color.orange, Color.pink,
+			Color.cyan, Color.lightGray };
 
 	public ScatterPlot(final ArrayList<Point2D> data, int[] labels, String title) {
 		super(title);
@@ -52,7 +59,7 @@ public class ScatterPlot extends ApplicationFrame {
 		xyseries.addSeries(series);
 		return xyseries;
 	}
-	
+
 	protected static void updateColors(XYPlot plot, int[] labels) {
 		plot.setRenderer(new XYLineAndShapeRenderer(false, true) {
 			private static final long serialVersionUID = 1L;
