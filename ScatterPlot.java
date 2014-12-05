@@ -33,7 +33,7 @@ public class ScatterPlot extends ApplicationFrame {
 		XYSeriesCollection xyseries = getData(data);
 
 		final JFreeChart chart = ChartFactory.createScatterPlot("DP Model",
-				"X", "Y", xyseries, PlotOrientation.VERTICAL, false, false,
+				"", "", xyseries, PlotOrientation.VERTICAL, false, false,
 				false);
 
 		final ChartPanel panel = new ChartPanel(chart);
@@ -43,8 +43,15 @@ public class ScatterPlot extends ApplicationFrame {
 		plot.setRangeCrosshairVisible(false);
 		plot.setDomainGridlinesVisible(false);
 		plot.setRangeGridlinesVisible(false);
+		plot.getDomainAxis().setTickMarksVisible(false);
+		plot.getRangeAxis().setTickMarksVisible(false);
+		plot.getDomainAxis().setAxisLineVisible(false);
+		plot.getRangeAxis().setAxisLineVisible(false);
+		plot.getDomainAxis().setTickLabelsVisible(false);
+		plot.getRangeAxis().setTickLabelsVisible(false);
+		plot.getDomainAxis().setTickLabelsVisible(false);
+		plot.getRangeAxis().setTickLabelsVisible(false);
 		plot.setBackgroundPaint(Color.black);
-
 		chart.setBackgroundPaint(Color.black);
 		chart.setBorderVisible(false);
 		panel.setBackground(Color.black);
@@ -52,19 +59,19 @@ public class ScatterPlot extends ApplicationFrame {
 	}
 
 	protected static ScatterPlot initPlots(ArrayList<Point2D> data,
-			final int[] labels, final int[] glabels, boolean singleton) {
+			final int[] labels, final int[] glabels, int K, boolean singleton) {
 		ScatterPlot truePlot = new ScatterPlot(data, labels, "Data (N = "
-				+ data.size() + ")");
+				+ data.size() + ", K = " + K + ")");
 		truePlot.pack();
-		truePlot.setSize(685, 650);
+		truePlot.setSize(685, 560);
 		truePlot.setLocation(0, 0);
 		truePlot.setVisible(true);
 
 		ScatterPlot currentPlot = new ScatterPlot(data, glabels,
 				"DP Model (Sampler: " + ((singleton) ? "Singleton)" : "Block)"));
 		currentPlot.pack();
-		currentPlot.setSize(685, 650);
-		currentPlot.setLocation(685, 0);
+		currentPlot.setSize(685, 560);
+		currentPlot.setLocation(680, 0);
 		currentPlot.setVisible(true);
 		return currentPlot;
 	}

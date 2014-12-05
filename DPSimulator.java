@@ -5,30 +5,34 @@
  * E-mail: yjwu@umich.edu
  */
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 
 import javax.imageio.ImageIO;
 
 public class DPSimulator {
-	@SuppressWarnings("unused")
 	public static void main(String[] args) throws InterruptedException,
 			IOException {
-		final int n = 100000;
+		final int n = 10000;
 		final int maxIters = Integer.MAX_VALUE;
 		final double alpha = 1;
 		final double theta = 100;
 		final double beta = 20;
 		final double xi = 20;
-		final int initClusters;
-		final int maxNumClusters;
+		final int maxNumClusters = n;
+		final boolean singleton = true;
+		int initClusters = 0;
+
+		final int seed = 3;
 		final int visual = 1;
-		final int eval = 0;
-		final boolean singleton = false;
+		final int eval = 10;
+		final boolean fout = true;
 		final int saveChart = 3000;
-		final int seed = 0;
 
 		/* Generating data */
 		System.out.print("Generating data...");
@@ -59,9 +63,8 @@ public class DPSimulator {
 				+ " clusters with size " + freq.toString() + " generated.");
 
 		crp = null;
-		initClusters = n;
-		maxNumClusters = n; 
-		
+		initClusters = (initClusters < 1) ? freq.size() : initClusters;
+
 		/* Simulation */
 		GibbsSampler gibbs = (singleton) ? new SingletonGibbsSampler(alpha,
 				theta, beta, xi, initClusters, maxNumClusters, data)
@@ -69,36 +72,49 @@ public class DPSimulator {
 						maxNumClusters, data);
 
 		ScatterPlot currentPlot = null;
-		TrackNumClusters numsPlot = null;
+		Evaluation numsPlot = null;
+		Evaluation residualPlot = null;
 		if (visual > 0) {
 			new DistributionPlot(freq, proportion.length);
-			numsPlot = new TrackNumClusters(proportion.length, initClusters);
-			//currentPlot = ScatterPlot.initPlots(data, labels, gibbs.labels,
-			//		singleton);
+			numsPlot = new Evaluation(initClusters, "Number of clusters");
+			residualPlot = new Evaluation(0, "Wasserstein distance");
+			if (eval > 0)
+				currentPlot = ScatterPlot.initPlots(data, labels, gibbs.labels,
+						freq.size(), singleton);
 		}
+
+		final String filename = "num_of_clusters_" + n + "_" + initClusters
+				+ "_" + ((singleton) ? "singleton" : "block");
+		PrintWriter file = null;
+		if (fout)
+			file = new PrintWriter(new BufferedWriter(new FileWriter(new File(
+					filename + ".txt"), true)));
 
 		long startTime = System.nanoTime();
 		for (int k = 1; k <= maxIters; k++) {
 			gibbs.next(k);
-			System.out
+			String output = String
 					.format("Iteration %d; %f milliseconds per iteration; %d clusters. ",
 							k, (System.nanoTime() - startTime) / 1000000.0 / k,
 							gibbs.clusters.size() - 1);
-			System.out.println((eval > 0 && k % eval == 0) ? "residual = "
-					+ gibbs.getResidual(n, proportion, centroidx, centroidy)
-					: "");
+			System.out.println(output);
 
+			if (fout)
+				file.println(output);
 			if (visual > 0 && k % visual == 0) {
-				//currentPlot.updateColors(gibbs.labels);
+				currentPlot.updateColors(gibbs.labels);
 				numsPlot.updateSeries(k, gibbs.clusters.size() - 1);
+				if (eval > 0 && k % eval == 0)
+					residualPlot
+							.updateSeries(k, gibbs.getResidual(proportion,
+									centroidx, centroidy));
 			}
 			if (k == saveChart)
 				ImageIO.write(numsPlot.chart.createBufferedImage(650, 400),
-						"png", new File("num_of_clusters_" + n + "_"
-								+ initClusters + "_"
-								+ ((singleton) ? "singleton" : "block")
-								+ ".png"));
-
+						"png", new File(filename + ".png"));
 		}
+
+		if (fout)
+			file.close();
 	}
 }

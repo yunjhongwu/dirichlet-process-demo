@@ -147,7 +147,7 @@ public abstract class GibbsSampler {
 		}
 	}
 
-	public double getResidual(int n, final double[] p, final double[] mux,
+	public double getResidual(final double[] p, final double[] mux,
 			final double[] muy) {
 		double[] res = new double[(clusters.size() - 1) * mux.length];
 		double[] q = new double[clusters.size() - 1];

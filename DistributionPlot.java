@@ -47,12 +47,20 @@ public class DistributionPlot extends ApplicationFrame {
 		plot.setRangeCrosshairVisible(false);
 		plot.setDomainGridlinesVisible(false);
 		plot.setRangeGridlinesVisible(false);
+		plot.getDomainAxis().setTickLabelPaint(Color.lightGray);
+		plot.getRangeAxis().setTickLabelPaint(Color.lightGray);
+		plot.getDomainAxis().setAxisLinePaint(Color.lightGray);
+		plot.getRangeAxis().setAxisLinePaint(Color.lightGray);
+		plot.getDomainAxis().setLabelPaint(Color.lightGray);
+		plot.getRangeAxis().setLabelPaint(Color.lightGray);
+		plot.getDomainAxis().setTickMarkPaint(Color.lightGray);
+		plot.getRangeAxis().setTickMarkPaint(Color.lightGray);
 		plot.setBackgroundPaint(Color.black);
 		chart.setBackgroundPaint(Color.black);
 		chart.setBorderVisible(false);
 		panel.setBackground(Color.black);
-		panel.setPreferredSize(new Dimension(685, 300));
-		this.setLocation(0, 500);
+		panel.setPreferredSize(new Dimension(685, 220));
+		this.setLocation(0, 520);
 		this.pack();
 		this.setVisible(true);
 	}
