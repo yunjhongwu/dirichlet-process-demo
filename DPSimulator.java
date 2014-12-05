@@ -72,12 +72,12 @@ public class DPSimulator {
 						maxNumClusters, data);
 
 		ScatterPlot currentPlot = null;
-		Evaluation numsPlot = null;
-		Evaluation residualPlot = null;
+		EvaluationPlot numsPlot = null;
+		EvaluationPlot residualPlot = null;
 		if (visual > 0) {
 			new DistributionPlot(freq, proportion.length);
-			numsPlot = new Evaluation(initClusters, "Number of clusters");
-			residualPlot = new Evaluation(0, "Wasserstein distance");
+			numsPlot = new EvaluationPlot(initClusters, "Number of clusters");
+			residualPlot = new EvaluationPlot(0, "Wasserstein distance");
 			if (eval > 0)
 				currentPlot = ScatterPlot.initPlots(data, labels, gibbs.labels,
 						freq.size(), singleton);

@@ -21,12 +21,12 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
 
-public class Evaluation extends ApplicationFrame {
+public class EvaluationPlot extends ApplicationFrame {
 	private static final long serialVersionUID = 1L;
 	private XYSeries series;
 	protected final JFreeChart chart;
 
-	public Evaluation(int initNum, String title) {
+	public EvaluationPlot(int initNum, String title) {
 		super(title);
 		this.series = new XYSeries("Estimates");
 		final XYSeriesCollection nums = new XYSeriesCollection(series);
