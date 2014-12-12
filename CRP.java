@@ -12,7 +12,7 @@ import org.apache.commons.math3.random.RandomDataGenerator;
 public class CRP {
 	// X \sim N(\mu_c, \sigma^2)
 	// \mu_c \sim N(0, \gamma\sigma^2)
-	// \sigma^2 \sim Gamma(\theta, \beta)
+	// \sigma^2 \sim Inv-Gamma(\theta, \beta)
 
 	final double alpha, theta, eta, gamma;
 	int n = 0;
@@ -39,8 +39,8 @@ public class CRP {
 	private void initCentroids(int K) {
 		for (int k = 0; k < K; k++) {
 			double[] m = new double[4];
-			m[2] = sampler.nextGamma(theta, eta);
-			m[3] = sampler.nextGamma(theta, eta);
+			m[2] = 1 / sampler.nextGamma(theta, eta);
+			m[3] = 1 / sampler.nextGamma(theta, eta);
 			m[0] = sampler.nextGaussian(0, Math.sqrt(gamma * m[2]));
 			m[1] = sampler.nextGaussian(0, Math.sqrt(gamma * m[3]));
 			moments.add(m);

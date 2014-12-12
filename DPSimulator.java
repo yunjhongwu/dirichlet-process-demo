@@ -20,20 +20,20 @@ public class DPSimulator {
 	public static void main(String[] args) throws InterruptedException,
 			IOException {
 		/* Parameters */
-		final int n = 10000;
+		final int n = 50000;
 		final int maxIters = Integer.MAX_VALUE;
-		final double alpha0 = 0;
-		final double alpha = 1;
-		final double theta = 1e10;
-		final double beta = 1e10;
-		final double gamma = 5;
+		final double alpha0 = 1; // Alpha for the generative model
+		final double alpha = 1; // Alpha for the Gibbs sampler
+		final double theta = 20; // Shape parameter of the gamma distribution
+		final double beta = 20; // Scale parameter of the gamma distribution
+		final double gamma = 20; // Separability of clusters
 		final int maxNumClusters = n;
 		int initClusters = 20;
 
 		final boolean singleton = true;
 		final int seed = 1;
 		final int visual = 1;
-		final int eval = 10;
+		final int eval = 0;
 		final boolean fout = false;
 		final int saveChart = Integer.MAX_VALUE;
 
