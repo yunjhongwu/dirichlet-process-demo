@@ -6,8 +6,10 @@
  */
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Paint;
 import java.awt.Shape;
+import java.awt.Toolkit;
 import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
 
@@ -32,9 +34,8 @@ public class ScatterPlot extends ApplicationFrame {
 		super(title);
 		XYSeriesCollection xyseries = getData(data);
 
-		final JFreeChart chart = ChartFactory.createScatterPlot("DP Model",
-				"", "", xyseries, PlotOrientation.VERTICAL, false, false,
-				false);
+		final JFreeChart chart = ChartFactory.createScatterPlot("DP Model", "",
+				"", xyseries, PlotOrientation.VERTICAL, false, false, false);
 
 		final ChartPanel panel = new ChartPanel(chart);
 		plot = (XYPlot) chart.getPlot();
@@ -62,16 +63,17 @@ public class ScatterPlot extends ApplicationFrame {
 			final int[] labels, final int[] glabels, int K, boolean singleton) {
 		ScatterPlot truePlot = new ScatterPlot(data, labels, "Data (N = "
 				+ data.size() + ", K = " + K + ")");
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+
 		truePlot.pack();
-		truePlot.setSize(685, 560);
+		truePlot.setSize(screenSize.width / 2, (int) (screenSize.height * 0.7));
 		truePlot.setLocation(0, 0);
 		truePlot.setVisible(true);
-
 		ScatterPlot currentPlot = new ScatterPlot(data, glabels,
 				"DP Model (Sampler: " + ((singleton) ? "Singleton)" : "Block)"));
 		currentPlot.pack();
-		currentPlot.setSize(685, 560);
-		currentPlot.setLocation(680, 0);
+		currentPlot.setSize(screenSize.width / 2, (int) (screenSize.height * 0.7));
+		currentPlot.setLocation(screenSize.width / 2, 0);
 		currentPlot.setVisible(true);
 		return currentPlot;
 	}

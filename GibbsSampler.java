@@ -25,16 +25,20 @@ import org.apache.commons.math3.random.RandomDataGenerator;
 public abstract class GibbsSampler {
 	final int n;
 	final int maxNumClusters;
-	final double alpha, theta, beta, xi;
+	final double alpha, theta, beta, gamma;
 	final ArrayList<Point2D> data;
 	int[] labels;
+
+	double[] proportion = null;
+	double[] centroidx = null;
+	double[] centroidy = null;
 
 	HashMap<Integer, double[]> clusters = new HashMap<Integer, double[]>();
 	Stack<Integer> emptyClusters = new Stack<Integer>();
 	ArrayList<Integer> ord = new ArrayList<Integer>();
 	RandomDataGenerator sampler = new RandomDataGenerator();
 
-	public GibbsSampler(double alpha, double theta, double beta, double xi,
+	public GibbsSampler(double alpha, double theta, double beta, double gamma,
 			int initClusters, int maxNumClusters, ArrayList<Point2D> data) {
 		this.data = data;
 		this.n = data.size();
@@ -42,9 +46,16 @@ public abstract class GibbsSampler {
 		this.alpha = alpha;
 		this.theta = theta;
 		this.beta = beta;
-		this.xi = xi;
+		this.gamma = gamma;
 		this.maxNumClusters = maxNumClusters;
 		initClusters(initClusters);
+	}
+
+	public void setTrueCentroids(double[] proportion, double[] centroidx,
+			double[] centroidy) {
+		this.proportion = proportion;
+		this.centroidx = centroidx;
+		this.centroidy = centroidy;
 	}
 
 	public void initClusters(int numClusters) {
@@ -67,15 +78,15 @@ public abstract class GibbsSampler {
 
 	private double posteriorVariance(double mu, double m2, double size) {
 		return (2 * theta + size)
-				/ (2 * beta + (m2 - Math.pow(mu, 2) / (size + xi)));
+				/ (2 * beta + (m2 - Math.pow(mu, 2) / (size + gamma)));
 		// return sampler.nextGamma(theta + size / 2.0,
-		// 2 / (2 * beta + (m2 - Math.pow(mu, 2) / (size + xi))));
+		// 2 / (2 * beta + (m2 - Math.pow(mu, 2) / (size + gamma))));
 	}
 
 	private double posteriorMean(double mu, double size) {
-		return mu / (size + xi);
-		// return sampler.nextGaussian(mu / (size + xi), Math.sqrt((1 +
-		// xi/ size) * sigma2 ));
+		return mu / (size + gamma);
+		// return sampler.nextGaussian(mu / (size + gamma), Math.sqrt((1 +
+		// gamma/ size) * sigma2 ));
 	}
 
 	private double logNormalLikelihood(int i, int j) {
@@ -147,44 +158,42 @@ public abstract class GibbsSampler {
 		}
 	}
 
-	public double getResidual(final double[] p, final double[] mux,
-			final double[] muy) {
-		double[] res = new double[(clusters.size() - 1) * mux.length];
+	public double getResidual() {
+		double[] res = new double[(clusters.size() - 1) * centroidx.length];
 		double[] q = new double[clusters.size() - 1];
 		int i = 0;
 		for (Integer c : clusters.keySet())
 			if (c > -1) {
-				for (int j = 0; j < mux.length; j++)
-					res[i * mux.length + j] = Math.pow(
-							mux[j]
+				for (int j = 0; j < centroidx.length; j++)
+					res[i * centroidx.length + j] = Math.pow(
+							centroidx[j]
 									- posteriorMean(clusters.get(c)[1],
 											clusters.get(c)[0]), 2)
 							+ Math.pow(
-									muy[j]
+									centroidy[j]
 											- posteriorMean(clusters.get(c)[2],
 													clusters.get(c)[0]), 2);
 				q[i++] = clusters.get(c)[0] / (double) n;
 			}
-
-		return getOptResidual(res, q, p);
+		return getOptResidual(res, q);
 	}
 
-	private double getOptResidual(final double[] res, final double[] cols,
-			final double[] rows) {
+	private double getOptResidual(final double[] res, final double[] cols) {
 		LinearObjectiveFunction f = new LinearObjectiveFunction(res, 0);
 		Collection<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
 		for (int i = 0; i < cols.length; i++) {
-			double[] b = new double[cols.length * rows.length];
-			for (int j = i * rows.length; j < (i + 1) * rows.length; j++)
+			double[] b = new double[cols.length * proportion.length];
+			for (int j = i * proportion.length; j < (i + 1) * proportion.length; j++)
 				b[j]++;
 			constraints.add(new LinearConstraint(b, Relationship.EQ, cols[i]));
 		}
 
-		for (int i = 0; i < rows.length; i++) {
-			double[] b = new double[cols.length * rows.length];
-			for (int j = i; j < b.length; j += rows.length)
+		for (int i = 0; i < proportion.length; i++) {
+			double[] b = new double[cols.length * proportion.length];
+			for (int j = i; j < b.length; j += proportion.length)
 				b[j]++;
-			constraints.add(new LinearConstraint(b, Relationship.EQ, rows[i]));
+			constraints.add(new LinearConstraint(b, Relationship.EQ,
+					proportion[i]));
 		}
 		SimplexSolver solver = new SimplexSolver();
 

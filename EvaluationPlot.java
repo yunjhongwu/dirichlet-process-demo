@@ -8,6 +8,7 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Toolkit;
 
 import javax.swing.JPanel;
 
@@ -35,6 +36,7 @@ public class EvaluationPlot extends ApplicationFrame {
 		final XYPlot plot = chart.getXYPlot();
 		final JPanel content = new JPanel(new BorderLayout());
 		final ChartPanel panel = new ChartPanel(chart);
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
 		content.add(panel);
 		setContentPane(content);
@@ -55,10 +57,12 @@ public class EvaluationPlot extends ApplicationFrame {
 		chart.setBackgroundPaint(Color.black);
 		chart.setBorderVisible(false);
 		panel.setBackground(Color.black);
-		panel.setPreferredSize(new Dimension(685, 220));
+		panel.setPreferredSize(new Dimension(screenSize.width / 2, (int) (screenSize.height * 0.3)));
 		if (initNum > 0)
 			series.add(0, initNum);
-		this.setLocation(685, 520);
+
+		this.setLocation(0, (int) (screenSize.height * 0.7));
+		this.setLocation(screenSize.width / 2, (int) (screenSize.height * 0.7));
 		this.pack();
 		this.setVisible(true);
 	}

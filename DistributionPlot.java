@@ -8,6 +8,7 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.util.ArrayList;
 
 import javax.swing.JPanel;
@@ -39,6 +40,7 @@ public class DistributionPlot extends ApplicationFrame {
 		final CategoryPlot plot = chart.getCategoryPlot();
 		final JPanel content = new JPanel(new BorderLayout());
 		final ChartPanel panel = new ChartPanel(chart);
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
 		content.add(panel);
 		setContentPane(content);
@@ -59,8 +61,8 @@ public class DistributionPlot extends ApplicationFrame {
 		chart.setBackgroundPaint(Color.black);
 		chart.setBorderVisible(false);
 		panel.setBackground(Color.black);
-		panel.setPreferredSize(new Dimension(685, 220));
-		this.setLocation(0, 520);
+		panel.setPreferredSize(new Dimension(screenSize.width / 2, (int) (screenSize.height * 0.3)));
+		this.setLocation(0, (int) (screenSize.height * 0.7));
 		this.pack();
 		this.setVisible(true);
 	}

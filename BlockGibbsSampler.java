@@ -13,9 +13,9 @@ public class BlockGibbsSampler extends GibbsSampler {
 	HashMap<Integer, Integer> amended;
 
 	public BlockGibbsSampler(double alpha, double theta, double beta,
-			double xi, int initClusters, int maxNumClusters,
+			double gamma, int initClusters, int maxNumClusters,
 			ArrayList<Point2D> data) {
-		super(alpha, theta, beta, xi, initClusters, maxNumClusters, data);
+		super(alpha, theta, beta, gamma, initClusters, maxNumClusters, data);
 	}
 
 	public void nextIter(int i) {

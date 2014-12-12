@@ -16,29 +16,32 @@ import java.util.Collections;
 import javax.imageio.ImageIO;
 
 public class DPSimulator {
+	@SuppressWarnings("unused")
 	public static void main(String[] args) throws InterruptedException,
 			IOException {
+		/* Parameters */
 		final int n = 10000;
 		final int maxIters = Integer.MAX_VALUE;
+		final double alpha0 = 0;
 		final double alpha = 1;
-		final double theta = 100;
-		final double beta = 20;
-		final double xi = 20;
+		final double theta = 1e10;
+		final double beta = 1e10;
+		final double gamma = 5;
 		final int maxNumClusters = n;
-		final boolean singleton = true;
-		int initClusters = 0;
+		int initClusters = 20;
 
-		final int seed = 3;
+		final boolean singleton = true;
+		final int seed = 1;
 		final int visual = 1;
 		final int eval = 10;
-		final boolean fout = true;
-		final int saveChart = 3000;
+		final boolean fout = false;
+		final int saveChart = Integer.MAX_VALUE;
 
 		/* Generating data */
 		System.out.print("Generating data...");
 		final ArrayList<Point2D> data = new ArrayList<Point2D>();
 		int[] labels = new int[n];
-		CRP crp = new CRP(alpha, theta, beta, xi, seed);
+		CRP crp = new CRP(alpha0, theta, beta, gamma, seed);
 		for (int i = 0; i < n; i++)
 			data.add(crp.next());
 
@@ -48,9 +51,8 @@ public class DPSimulator {
 
 		/* Getting parameters */
 		double[] proportion = new double[crp.size.size()];
-		double[] centroidx = new double[crp.moments.size()];
-		double[] centroidy = new double[crp.moments.size()];
-
+		double[] centroidx = new double[crp.size.size()];
+		double[] centroidy = new double[crp.size.size()];
 		for (int c = 0; c < proportion.length; c++) {
 			proportion[c] = crp.size.get(c) / (double) n;
 			centroidx[c] = crp.moments.get(c)[0];
@@ -59,7 +61,7 @@ public class DPSimulator {
 		ArrayList<Integer> freq = crp.size;
 		Collections.sort(freq, Collections.reverseOrder());
 		System.out.println("done.");
-		System.out.println(n + " data points and " + crp.moments.size()
+		System.out.println(n + " data points and " + crp.size.size()
 				+ " clusters with size " + freq.toString() + " generated.");
 
 		crp = null;
@@ -67,9 +69,10 @@ public class DPSimulator {
 
 		/* Simulation */
 		GibbsSampler gibbs = (singleton) ? new SingletonGibbsSampler(alpha,
-				theta, beta, xi, initClusters, maxNumClusters, data)
-				: new BlockGibbsSampler(alpha, theta, beta, xi, initClusters,
-						maxNumClusters, data);
+				theta, beta, gamma, initClusters, maxNumClusters, data)
+				: new BlockGibbsSampler(alpha, theta, beta, gamma,
+						initClusters, maxNumClusters, data);
+		gibbs.setTrueCentroids(proportion, centroidx, centroidy);
 
 		ScatterPlot currentPlot = null;
 		EvaluationPlot numsPlot = null;
@@ -77,18 +80,25 @@ public class DPSimulator {
 		if (visual > 0) {
 			new DistributionPlot(freq, proportion.length);
 			numsPlot = new EvaluationPlot(initClusters, "Number of clusters");
-			residualPlot = new EvaluationPlot(0, "Wasserstein distance");
+			currentPlot = ScatterPlot.initPlots(data, labels, gibbs.labels,
+					freq.size(), singleton);
+
 			if (eval > 0)
-				currentPlot = ScatterPlot.initPlots(data, labels, gibbs.labels,
-						freq.size(), singleton);
+				residualPlot = new EvaluationPlot(0, "Wasserstein distance");
 		}
 
 		final String filename = "num_of_clusters_" + n + "_" + initClusters
-				+ "_" + ((singleton) ? "singleton" : "block");
+				+ "_alpha" + alpha + "_beta" + beta + "_theta" + theta
+				+ "_gamma" + gamma + "_"
+				+ ((singleton) ? "singleton" : "block");
 		PrintWriter file = null;
-		if (fout)
+		PrintWriter fileWD = null;
+		if (fout) {
 			file = new PrintWriter(new BufferedWriter(new FileWriter(new File(
 					filename + ".txt"), true)));
+			fileWD = new PrintWriter(new BufferedWriter(new FileWriter(
+					new File(filename + "_WD.txt"), true)));
+		}
 
 		long startTime = System.nanoTime();
 		for (int k = 1; k <= maxIters; k++) {
@@ -105,16 +115,21 @@ public class DPSimulator {
 				currentPlot.updateColors(gibbs.labels);
 				numsPlot.updateSeries(k, gibbs.clusters.size() - 1);
 				if (eval > 0 && k % eval == 0)
-					residualPlot
-							.updateSeries(k, gibbs.getResidual(proportion,
-									centroidx, centroidy));
+					residualPlot.updateSeries(k, gibbs.getResidual());
+
 			}
-			if (k == saveChart)
+			if (fout && eval > 0 && k % eval == 0)
+				fileWD.println(gibbs.getResidual());
+
+			if (k == saveChart && visual > 0)
 				ImageIO.write(numsPlot.chart.createBufferedImage(650, 400),
 						"png", new File(filename + ".png"));
+
 		}
 
-		if (fout)
+		if (fout) {
 			file.close();
+			fileWD.close();
+		}
 	}
 }
