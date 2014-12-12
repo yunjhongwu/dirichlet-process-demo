@@ -79,14 +79,10 @@ public abstract class GibbsSampler {
 	private double posteriorVariance(double mu, double m2, double size) {
 		return (2 * theta + size)
 				/ (2 * beta + (m2 - Math.pow(mu, 2) / (size + gamma)));
-		// return sampler.nextGamma(theta + size / 2.0,
-		// 2 / (2 * beta + (m2 - Math.pow(mu, 2) / (size + gamma))));
 	}
 
 	private double posteriorMean(double mu, double size) {
 		return mu / (size + gamma);
-		// return sampler.nextGaussian(mu / (size + gamma), Math.sqrt((1 +
-		// gamma/ size) * sigma2 ));
 	}
 
 	private double logNormalLikelihood(int i, int j) {
